@@ -27,6 +27,7 @@ namespace MasterOfLeeSin
         public static Obj_AI_Base lastWard = null, farmMinion = null;
         public static float lastTimeInsec = 0, lastTimeWard = 0, lastTimeJump = 0, lastTimeQ = 0;
         public static Int32 lastSkin = 0;
+        public static Boolean PacketCast = false;
 
         static void Main(string[] args)
         {
@@ -62,7 +63,7 @@ namespace MasterOfLeeSin
             Config.AddSubMenu(new Menu("Combo Settings", "csettings"));
             Config.SubMenu("csettings").AddItem(new MenuItem("qusage", "Use Q").SetValue(true));
             Config.SubMenu("csettings").AddItem(new MenuItem("wusage", "Use W").SetValue(false));
-            Config.SubMenu("csettings").AddItem(new MenuItem("autowusage", "Use W If Hp 60%").SetValue(true));
+            Config.SubMenu("csettings").AddItem(new MenuItem("autowusage", "Use W If Hp 60%").SetValue(false));
             Config.SubMenu("csettings").AddItem(new MenuItem("eusage", "Use E").SetValue(true));
             Config.SubMenu("csettings").AddItem(new MenuItem("rusage", "Use R To Finish").SetValue(true));
             Config.SubMenu("csettings").AddItem(new MenuItem("ignite", "Auto Ignite If Killable").SetValue(true));
@@ -82,6 +83,7 @@ namespace MasterOfLeeSin
             //Config.SubMenu("miscs").AddItem(new MenuItem("smite", "Auto Smite Collision Minion").SetValue(true));
             Config.SubMenu("miscs").AddItem(new MenuItem("skin", "Use Custom Skin").SetValue(true));
             Config.SubMenu("miscs").AddItem(new MenuItem("skin1", "Skin Changer").SetValue(new Slider(4, 1, 7)));
+            Config.SubMenu("miscs").AddItem(new MenuItem("packetCast", "Use Packet To Cast").SetValue(true));
 
             Config.AddSubMenu(new Menu("Ultimate Settings", "useUlt"));
             foreach (var enemy in ObjectManager.Get<Obj_AI_Hero>().Where(i => i != null && i.IsValid && i.IsEnemy))
@@ -176,6 +178,7 @@ namespace MasterOfLeeSin
             RandReady = Items.CanUseItem(Rand);
             ModeFocus();
             if (Player.IsDead) return;
+            PacketCast = Config.Item("packetCast").GetValue<bool>();
             useSight = wardSlot();
             //targetMinions = MinionManager.GetMinions(Player.Position, 600, MinionTypes.All, MinionTeam.Enemy);
             //jungleMinions = MinionManager.GetMinions(Player.Position, 600, MinionTypes.All, MinionTeam.Neutral);
@@ -359,12 +362,6 @@ namespace MasterOfLeeSin
             return new Vector3(X, Y, to.Z);
         }
 
-        static void MoveToCursor()
-        {
-            var moveToPos = ReverseVector(Player.Position, Game.CursorPos, 300);
-            Packet.C2S.Move.Encoded(new Packet.C2S.Move.Struct(moveToPos.X, moveToPos.Y)).Send();
-        }
-
         static bool KillStealBrDr()
         {
             Player.IssueOrder(GameObjectOrder.MoveTo, Game.CursorPos);
@@ -381,7 +378,7 @@ namespace MasterOfLeeSin
                     {
                         if (QData.Name == "BlindMonkQOne")
                         {
-                            SkillQ.Cast(minion, true);
+                            SkillQ.Cast(minion, PacketCast);
                         }
                         else if (minion.HasBuff("BlindMonkQOne", true))
                         {
@@ -394,7 +391,7 @@ namespace MasterOfLeeSin
                     {
                         if (QData.Name == "BlindMonkQOne")
                         {
-                            SkillQ.Cast(minion, true);
+                            SkillQ.Cast(minion, PacketCast);
                         }
                         else if (minion.HasBuff("BlindMonkQOne", true))
                         {
@@ -438,7 +435,7 @@ namespace MasterOfLeeSin
                 {
                     if (QData.Name == "BlindMonkQOne")
                     {
-                        SkillQ.Cast(targetObj, true);
+                        SkillQ.Cast(targetObj, PacketCast);
                         return;
                     }
                     else if (targetObj.HasBuff("BlindMonkQOne", true) && SkillW.IsReady() && WData.Name == "BlindMonkWOne" && Player.Mana >= 80 && (Player.Health / Player.MaxHealth) >= 0.5)
@@ -476,7 +473,7 @@ namespace MasterOfLeeSin
                             maxDist = distJumper;
                         }
                     }
-                    if (Jumper.IsValidTarget(SkillW.Range, false)) SkillW.Cast(Jumper, true);
+                    if (Jumper.IsValidTarget(SkillW.Range, false)) SkillW.Cast(Jumper, PacketCast);
                 }
             }
         }
@@ -498,7 +495,7 @@ namespace MasterOfLeeSin
                 {
                     if ((Environment.TickCount - lastTimeJump) > 1000)
                     {
-                        SkillW.Cast(lastWard, true);
+                        SkillW.Cast(lastWard, PacketCast);
                         lastTimeJump = Environment.TickCount;
                     }
                     return;
@@ -526,7 +523,7 @@ namespace MasterOfLeeSin
                         CheckingCollision(targetObj);
                         //if (SkillQ.GetPrediction(insecObj).Hitchance >= HitChance.High)
                         //{
-                            SkillQ.Cast(insecObj, true);
+                        SkillQ.Cast(insecObj, PacketCast);
                             return;
                         //}
                         //var prediction = SkillQ.GetPrediction(insecObj);
@@ -575,7 +572,7 @@ namespace MasterOfLeeSin
                                 var newDistance = friendlyObj.Distance(insecObj) - friendlyObj.Distance(pos);
                                 if (newDistance > 0 && (newDistance / 500) > 0.7)
                                 {
-                                    SkillR.Cast(insecObj, true);
+                                    SkillR.Cast(insecObj, PacketCast);
                                     return true;
                                 }
                             }
@@ -583,7 +580,7 @@ namespace MasterOfLeeSin
                             {
                                 if ((Environment.TickCount - lastTimeJump) < 1000 && (Environment.TickCount - lastTimeJump) >= 10)
                                 {
-                                    SkillW.Cast(lastWard, true);
+                                    SkillW.Cast(lastWard, PacketCast);
                                     lastTimeInsec = Environment.TickCount + 500;
                                     return true;
                                 }
@@ -613,7 +610,7 @@ namespace MasterOfLeeSin
                                 var newDistance = turretObj.Distance(insecObj) - turretObj.Distance(pos);
                                 if (newDistance > 0 && (newDistance / 500) > 0.7)
                                 {
-                                    SkillR.Cast(insecObj, true);
+                                    SkillR.Cast(insecObj, PacketCast);
                                     return true;
                                 }
                             }
@@ -621,7 +618,7 @@ namespace MasterOfLeeSin
                             {
                                 if ((Environment.TickCount - lastTimeJump) < 1000 && (Environment.TickCount - lastTimeJump) >= 10)
                                 {
-                                    SkillW.Cast(lastWard, true);
+                                    SkillW.Cast(lastWard, PacketCast);
                                     lastTimeInsec = Environment.TickCount + 500;
                                     return true;
                                 }
@@ -662,7 +659,7 @@ namespace MasterOfLeeSin
                                 var newDistance = friendlyObj.Distance(insecObj) - friendlyObj.Distance(pos);
                                 if (newDistance > 0 && (newDistance / 500) > 0.7)
                                 {
-                                    SkillR.Cast(insecObj, true);
+                                    SkillR.Cast(insecObj, PacketCast);
                                     return true;
                                 }
                             }
@@ -703,7 +700,7 @@ namespace MasterOfLeeSin
                                 var newDistance = turretObj.Distance(insecObj) - turretObj.Distance(pos);
                                 if (newDistance > 0 && (newDistance / 500) > 0.7)
                                 {
-                                    SkillR.Cast(insecObj, true);
+                                    SkillR.Cast(insecObj, PacketCast);
                                     return true;
                                 }
                             }
@@ -749,7 +746,7 @@ namespace MasterOfLeeSin
                 {
                     if (QData.Name == "BlindMonkQOne")
                     {
-                        SkillQ.Cast(targetObj, true);
+                        SkillQ.Cast(targetObj, PacketCast);
                         return;
                     }
                     else if (targetObj.HasBuff("BlindMonkQOne", true) && (Player.Distance(targetObj) > 500 || targetObj.Health <= SkillQ.GetDamage(targetObj, 1) || (Environment.TickCount - lastTimeQ) > 2000))
@@ -775,7 +772,7 @@ namespace MasterOfLeeSin
                 {
                     if (SkillR.IsKillable(targetObj) || (Player.CalcDamage(targetObj, Damage.DamageType.Physical, targetObj.Health - SkillR.GetDamage(targetObj) + 100) <= SkillQ.GetDamage(targetObj, 1) && targetObj.HasBuff("BlindMonkQOne", true) && SkillQ.IsReady() && Player.Mana >= 50))
                     {
-                        SkillR.Cast(targetObj, true);
+                        SkillR.Cast(targetObj, PacketCast);
                         return;
                     }
                 }
@@ -785,7 +782,7 @@ namespace MasterOfLeeSin
                     {
                         if (WData.Name == "BlindMonkWOne")
                         {
-                            SkillW.Cast(Player, true);
+                            SkillW.Cast(Player, PacketCast);
                             return;
                         }
                         else if (!Player.HasBuff("blindmonkwoneshield", true))
@@ -801,7 +798,7 @@ namespace MasterOfLeeSin
                     {
                         if (WData.Name == "BlindMonkWOne")
                         {
-                            SkillW.Cast(Player, true);
+                            SkillW.Cast(Player, PacketCast);
                             return;
                         }
                         else if (!Player.HasBuff("blindmonkwoneshield", true))
@@ -843,7 +840,7 @@ namespace MasterOfLeeSin
             {
                 if (SkillQ.IsReady() && QData.Name == "BlindMonkQOne")
                 {
-                    SkillQ.Cast(targetObj, true);
+                    SkillQ.Cast(targetObj, PacketCast);
                     return;
                 }
                 if (!targetObj.IsValidTarget(SkillR.Range) && SkillR.IsReady() && targetObj.HasBuff("BlindMonkQOne", true) && targetObj.IsValidTarget(SkillW.Range)) WardJump(targetObj.Position, 600);
@@ -852,7 +849,7 @@ namespace MasterOfLeeSin
                     SkillE.Cast();
                     return;
                 }
-                if (SkillR.IsReady() && targetObj.HasBuff("BlindMonkQOne", true) && targetObj.IsValidTarget(SkillR.Range) && Player.Mana >= 50) SkillR.Cast(targetObj, true);
+                if (SkillR.IsReady() && targetObj.HasBuff("BlindMonkQOne", true) && targetObj.IsValidTarget(SkillR.Range) && Player.Mana >= 50) SkillR.Cast(targetObj, PacketCast);
                 if (!SkillR.IsReady() && targetObj.HasBuff("BlindMonkQOne", true) && Player.Distance(targetObj) > 400)
                 {
                     SkillQ.Cast();
@@ -937,7 +934,7 @@ namespace MasterOfLeeSin
                     if (HydraReady && Player.Distance(farmMinion) < 350) Items.UseItem(Hydra);
                     if (SkillQ.IsReady() && QData.Name == "BlindMonkQOne" && Config.Item("useClearQ").GetValue<bool>())
                     {
-                        SkillQ.Cast(farmMinion, true);
+                        SkillQ.Cast(farmMinion, PacketCast);
                         return;
                     }
                     else if (farmMinion.HasBuff("BlindMonkQOne", true) && Player.Distance(farmMinion) < 500)
@@ -957,7 +954,7 @@ namespace MasterOfLeeSin
                     }
                     if (SkillW.IsReady() && WData.Name == "BlindMonkWOne" && Config.Item("useClearW").GetValue<bool>())
                     {
-                        SkillW.Cast(Player, true);
+                        SkillW.Cast(Player, PacketCast);
                         return;
                     }
                     else if (Player.Distance(farmMinion) < 200)
@@ -968,7 +965,6 @@ namespace MasterOfLeeSin
                     Player.IssueOrder(GameObjectOrder.AttackUnit, farmMinion);
                     return;
                 }
-                MoveToCursor();
             }
         }
     }
