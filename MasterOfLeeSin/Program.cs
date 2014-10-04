@@ -428,8 +428,8 @@ namespace MasterOfLeeSin
             Orbwalking.Orbwalk(targetObj, Game.CursorPos);
             if (targetObj != null)
             {
-                var jumpHero = ObjectManager.Get<Obj_AI_Hero>().Where(i => i.IsAlly && !i.IsMe && i.IsValidTarget(SkillQ.Range, false));//.OrderBy(i => targetObj.Distance(i) <= SkillW.Range);
-                var jumpMinion = ObjectManager.Get<Obj_AI_Minion>().Where(i => i.IsAlly && !i.IsMe && i.IsValidTarget(SkillQ.Range, false));//.OrderBy(i => targetObj.Distance(i) <= SkillW.Range);
+                var jumpHero = ObjectManager.Get<Obj_AI_Hero>().Where(i => i.IsAlly && !i.IsMe && i.IsValidTarget(SkillQ.Range, false)).OrderBy(i => targetObj.Distance(i) <= SkillW.Range);
+                var jumpMinion = ObjectManager.Get<Obj_AI_Minion>().Where(i => i.IsAlly && !i.IsMe && i.IsValidTarget(SkillQ.Range, false)).OrderBy(i => targetObj.Distance(i) <= SkillW.Range);
                 if (jumpHero.Count() == 0 || jumpMinion.Count() == 0) return;
                 if (SkillQ.IsReady())
                 {
@@ -770,7 +770,7 @@ namespace MasterOfLeeSin
                 }
                 if (SkillR.IsReady() && Config.Item("rusage").GetValue<bool>() && Config.Item("ult" + targetObj.ChampionName).GetValue<bool>() && targetObj.IsValidTarget(SkillR.Range))
                 {
-                    if (SkillR.IsKillable(targetObj) || (Player.CalcDamage(targetObj, Damage.DamageType.Physical, targetObj.Health - SkillR.GetDamage(targetObj) + 100) <= SkillQ.GetDamage(targetObj, 1) && targetObj.HasBuff("BlindMonkQOne", true) && SkillQ.IsReady() && Player.Mana >= 50))
+                    if (SkillR.IsKillable(targetObj) || (Player.CalcDamage(targetObj, Damage.DamageType.Physical, targetObj.Health - SkillR.GetDamage(targetObj)) <= SkillQ.GetDamage(targetObj, 1) && targetObj.HasBuff("BlindMonkQOne", true) && SkillQ.IsReady() && Player.Mana >= 50))
                     {
                         SkillR.Cast(targetObj, PacketCast);
                         return;
