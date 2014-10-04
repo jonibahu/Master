@@ -347,7 +347,7 @@ namespace MasterOfLeeSin
                 {
                     SkillQ.Cast(minionObj, PacketCast);
                 }
-                else if (minionObj.HasBuff("BlindMonkQOne", true)) SkillQ.Cast();
+                else if (minionObj.HasBuff("BlindMonkQOne", true) || minionObj.HasBuff("blindmonkqonechaos", true)) SkillQ.Cast();
             }
             if (SkillQ.IsReady() && SReady && minionObj.Health < GetQ2Dmg(minionObj, SkillQ.GetDamage(minionObj) + Player.GetSummonerSpellDamage(minionObj, Damage.SummonerSpell.Smite)))
             {
@@ -355,7 +355,7 @@ namespace MasterOfLeeSin
                 {
                     SkillQ.Cast(minionObj, PacketCast);
                 }
-                else if (minionObj.HasBuff("BlindMonkQOne", true))
+                else if (minionObj.HasBuff("BlindMonkQOne", true) || minionObj.HasBuff("blindmonkqonechaos", true))
                 {
                     SkillQ.Cast();
                     Player.SummonerSpellbook.CastSpell(SData.Slot, minionObj);
@@ -392,7 +392,7 @@ namespace MasterOfLeeSin
                 {
                     SkillQ.Cast(targetObj, PacketCast);
                 }
-                else if (targetObj.HasBuff("BlindMonkQOne", true) && SkillW.IsReady() && WData.Name == "BlindMonkWOne" && Player.Mana >= 130 && (Player.Health / Player.MaxHealth) >= 0.3)
+                else if ((targetObj.HasBuff("BlindMonkQOne", true) || targetObj.HasBuff("blindmonkqonechaos", true)) && SkillW.IsReady() && WData.Name == "BlindMonkWOne" && Player.Mana >= 130 && (Player.Health / Player.MaxHealth) >= 0.3)
                 {
                     var nearJumper = (Obj_AI_Base)ObjectManager.Get<Obj_AI_Minion>().Where(i => i.IsValid && i.IsAlly && i.Distance(Player) <= 600 && i.Distance(targetObj) <= SkillW.Range).FirstOrDefault() ?? ObjectManager.Get<Obj_AI_Hero>().Where(i => i.IsValid && i.IsAlly && !i.IsMe && i.Distance(Player) <= 600 && i.Distance(targetObj) <= SkillW.Range).FirstOrDefault();
                     if (nearJumper != null) SkillQ.Cast();
@@ -474,7 +474,7 @@ namespace MasterOfLeeSin
                         //    return;
                         //}
                     }
-                    else if (insecObj.HasBuff("BlindMonkQOne", true))
+                    else if (insecObj.HasBuff("BlindMonkQOne", true) || insecObj.HasBuff("blindmonkqonechaos", true))
                     {
                         lastTimeInsec = Environment.TickCount + 150;
                         SkillQ.Cast();
@@ -674,14 +674,14 @@ namespace MasterOfLeeSin
             if (targetObj == null) return;
             if (Config.Item("eusage").GetValue<bool>() && SkillE.IsReady() && EData.Name == "BlindMonkEOne" && targetObj.IsValidTarget(SkillE.Range)) SkillE.Cast();
             if (Config.Item("qusage").GetValue<bool>() && SkillQ.IsReady() && QData.Name == "BlindMonkQOne") SkillQ.Cast(targetObj, PacketCast);
-            if (Config.Item("qusage").GetValue<bool>() && SkillQ.IsReady() && targetObj.HasBuff("BlindMonkQOne", true))
+            if (Config.Item("qusage").GetValue<bool>() && SkillQ.IsReady() && (targetObj.HasBuff("BlindMonkQOne", true) || targetObj.HasBuff("blindmonkqonechaos", true)))
             {
                 if (Player.Distance(targetObj) > 500 || targetObj.Health < SkillQ.GetDamage(targetObj, 1) || (targetObj.HasBuff("BlindMonkEOne", true) && targetObj.IsValidTarget(SkillE.Range)) || (Environment.TickCount - lastTimeQ) > 1500) SkillQ.Cast();
             }
             if (Config.Item("eusage").GetValue<bool>() && SkillE.IsReady() && targetObj.HasBuff("BlindMonkEOne", true) && targetObj.IsValidTarget(SkillE.Range)) SkillE.Cast();
             if (Config.Item("rusage").GetValue<bool>() && Config.Item("ult" + targetObj.ChampionName).GetValue<bool>() && SkillR.IsReady() && targetObj.IsValidTarget(SkillR.Range))
             {
-                if (SkillR.IsKillable(targetObj) || (targetObj.Health < GetQ2Dmg(targetObj, SkillR.GetDamage(targetObj)) && targetObj.HasBuff("BlindMonkQOne", true) && SkillQ.IsReady() && Player.Mana >= 50)) SkillR.Cast(targetObj, PacketCast);
+                if (SkillR.IsKillable(targetObj) || (targetObj.Health < GetQ2Dmg(targetObj, SkillR.GetDamage(targetObj)) && (targetObj.HasBuff("BlindMonkQOne", true) || targetObj.HasBuff("blindmonkqonechaos", true)) && SkillQ.IsReady() && Player.Mana >= 50)) SkillR.Cast(targetObj, PacketCast);
             }
             if (Config.Item("wusage").GetValue<bool>() && SkillW.IsReady() && targetObj.IsValidTarget(SkillE.Range) && (Player.Health * 100 / Player.MaxHealth) <= Config.Item("autowusage").GetValue<Slider>().Value)
             {
@@ -717,10 +717,10 @@ namespace MasterOfLeeSin
             if (targetObj == null) return;
             if (SkillE.IsReady() && EData.Name == "BlindMonkEOne" && targetObj.IsValidTarget(SkillE.Range)) SkillE.Cast();
             if (SkillQ.IsReady() && QData.Name == "BlindMonkQOne") SkillQ.Cast(targetObj, PacketCast);
-            if (!targetObj.IsValidTarget(SkillR.Range) && SkillR.IsReady() && targetObj.HasBuff("BlindMonkQOne", true) && targetObj.IsValidTarget(SkillW.Range)) WardJump(targetObj.Position, 600);
+            if (!targetObj.IsValidTarget(SkillR.Range) && SkillR.IsReady() && (targetObj.HasBuff("BlindMonkQOne", true) || targetObj.HasBuff("blindmonkqonechaos", true)) && targetObj.IsValidTarget(SkillW.Range)) WardJump(targetObj.Position, 600);
             UseItem(targetObj);
-            if (SkillR.IsReady() && targetObj.HasBuff("BlindMonkQOne", true) && targetObj.IsValidTarget(SkillR.Range) && Player.Mana >= 50) SkillR.Cast(targetObj, PacketCast);
-            if (!SkillR.IsReady() && targetObj.HasBuff("BlindMonkQOne", true) && Player.Distance(targetObj) > 350) SkillQ.Cast();
+            if (SkillR.IsReady() && (targetObj.HasBuff("BlindMonkQOne", true) || targetObj.HasBuff("blindmonkqonechaos", true)) && targetObj.IsValidTarget(SkillR.Range) && Player.Mana >= 50) SkillR.Cast(targetObj, PacketCast);
+            if (!SkillR.IsReady() && (targetObj.HasBuff("BlindMonkQOne", true) || targetObj.HasBuff("blindmonkqonechaos", true)) && Player.Distance(targetObj) > 350) SkillQ.Cast();
             if (!SkillR.IsReady() && targetObj.HasBuff("BlindMonkEOne", true) && targetObj.IsValidTarget(SkillE.Range)) SkillE.Cast();
             CastIgnite(targetObj);
         }
@@ -784,7 +784,7 @@ namespace MasterOfLeeSin
                 {
                     if (!Passive) SkillQ.Cast(minionObj, PacketCast);
                 }
-                else if (minionObj.HasBuff("BlindMonkQOne", true) && (!Passive || minionObj.Health < SkillQ.GetDamage(minionObj, 1) || (Environment.TickCount - SkillQ.LastCastAttemptT) > 2000 || Player.Distance(minionObj) >= 400)) SkillQ.Cast();
+                else if ((minionObj.HasBuff("BlindMonkQOne", true) || minionObj.HasBuff("blindmonkqonechaos", true)) && (!Passive || minionObj.Health < SkillQ.GetDamage(minionObj, 1) || (Environment.TickCount - SkillQ.LastCastAttemptT) > 2000 || Player.Distance(minionObj) >= 400)) SkillQ.Cast();
             }
             if (Config.Item("useClearE").GetValue<bool>() && SkillE.IsReady() && minionObj.IsValidTarget(SkillE.Range))
             {
