@@ -19,8 +19,7 @@ namespace Master
         private Int32 Tiamat = 3077, Hydra = 3074, Blade = 3153, Bilge = 3144, Rand = 3143;
         private Boolean TiamatReady = false, HydraReady = false, BladeReady = false, BilgeReady = false, RandReady = false;
         private InventorySlot Ward = null;
-        private float lastTimeWard = 0, lastTimeJump = 0;
-        private Int32 lastSkinId = 0;
+        private Int32 lastSkinId = 0, lastTimeWard = 0, lastTimeJump = 0;
         private Boolean PacketCast = false;
 
         public LeeSin()
@@ -177,7 +176,6 @@ namespace Master
             }
             PacketCast = Config.Item("packetCast").GetValue<bool>();
             Ward = GetWardSlot();
-            //targetObj = GetInsecTarget();
             allyObj = GetInsecAlly();
             switch (Orbwalker.ActiveMode)
             {
