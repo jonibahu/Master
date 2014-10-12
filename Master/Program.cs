@@ -331,7 +331,7 @@ namespace MasterOfLeeSin
             {
                 if (QData.Name == "BlindMonkQOne")
                 {
-                    if (Config.Item("smite").GetValue<bool>() && SReady && SkillQ.GetPrediction(targetObj).CollisionObjects.Count == 1) CheckingCollision(targetObj);
+                    if (Config.Item("smite").GetValue<bool>() && SReady && SkillQ.GetPrediction(targetObj).Hitchance == HitChance.Collision) CheckingCollision(targetObj);
                     SkillQ.Cast(targetObj, PacketCast);
                 }
                 else if ((targetObj.HasBuff("BlindMonkQOne", true) || targetObj.HasBuff("blindmonkqonechaos", true)) && targetObj.IsValidTarget(1300) && SkillW.IsReady() && WData.Name == "BlindMonkWOne" && Player.Mana >= (Config.Item("useHarrE").GetValue<bool>() ? 130 : 80) && (Player.Health * 100 / Player.MaxHealth) >= Config.Item("harrMode").GetValue<Slider>().Value)
@@ -390,7 +390,7 @@ namespace MasterOfLeeSin
             {
                 if (QData.Name == "BlindMonkQOne")
                 {
-                    if (Config.Item("smite").GetValue<bool>() && SReady) CheckingCollision(targetObj);
+                    if (Config.Item("smite").GetValue<bool>() && SReady && SkillQ.GetPrediction(targetObj).Hitchance == HitChance.Collision) CheckingCollision(targetObj);
                     SkillQ.Cast(targetObj, PacketCast);
                 }
                 else
@@ -471,7 +471,7 @@ namespace MasterOfLeeSin
             if (Config.Item("eusage").GetValue<bool>() && SkillE.IsReady() && EData.Name == "BlindMonkEOne" && targetObj.IsValidTarget(SkillE.Range)) SkillE.Cast();
             if (Config.Item("qusage").GetValue<bool>() && SkillQ.IsReady() && QData.Name == "BlindMonkQOne")
             {
-                if (Config.Item("smite").GetValue<bool>() && SReady && SkillQ.GetPrediction(targetObj).CollisionObjects.Count == 1) CheckingCollision(targetObj);
+                if (Config.Item("smite").GetValue<bool>() && SReady && SkillQ.GetPrediction(targetObj).Hitchance == HitChance.Collision) CheckingCollision(targetObj);
                 SkillQ.Cast(targetObj, PacketCast);
             }
             if (Config.Item("qusage").GetValue<bool>() && SkillQ.IsReady() && targetObj.IsValidTarget(1300) && (targetObj.HasBuff("BlindMonkQOne", true) || targetObj.HasBuff("blindmonkqonechaos", true)))
@@ -505,7 +505,7 @@ namespace MasterOfLeeSin
             if (SkillE.IsReady() && EData.Name == "BlindMonkEOne" && targetObj.IsValidTarget(SkillE.Range)) SkillE.Cast();
             if (SkillQ.IsReady() && QData.Name == "BlindMonkQOne")
             {
-                if (Config.Item("smite").GetValue<bool>() && SReady && SkillQ.GetPrediction(targetObj).CollisionObjects.Count == 1) CheckingCollision(targetObj);
+                if (Config.Item("smite").GetValue<bool>() && SReady && SkillQ.GetPrediction(targetObj).Hitchance == HitChance.Collision) CheckingCollision(targetObj);
                 SkillQ.Cast(targetObj, PacketCast);
             }
             if (!targetObj.IsValidTarget(SkillR.Range) && SkillR.IsReady() && SkillQ.IsReady() && (targetObj.HasBuff("BlindMonkQOne", true) || targetObj.HasBuff("blindmonkqonechaos", true)) && targetObj.IsValidTarget(SkillW.Range)) WardJump(targetObj.Position);
