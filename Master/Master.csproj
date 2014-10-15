@@ -69,8 +69,12 @@
     <Reference Include="System.Drawing" />
   </ItemGroup>
   <ItemGroup>
+    <Compile Include="Champions\DrMundo.cs" />
     <Compile Include="Champions\LeeSin.cs" />
+    <Compile Include="Champions\Nasus.cs" />
+    <Compile Include="Champions\Renekton.cs" />
     <Compile Include="Champions\Shen.cs" />
+    <Compile Include="Champions\Tryndamere.cs" />
     <Compile Include="Program.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
   </ItemGroup>
