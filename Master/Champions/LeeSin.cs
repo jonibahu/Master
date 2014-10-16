@@ -12,9 +12,7 @@ namespace Master
     {
         private const String Version = "1.1.0";
         private Obj_AI_Base allyObj = null;
-        private Spell SkillQ, SkillW, SkillE, SkillR;
-        private SpellDataInst QData, WData, EData, RData, FData, SData, IData;
-        private Boolean FReady = false, SReady = false, IReady = false;
+        private SpellDataInst QData, WData, EData, RData;
         private Int32 Tiamat = 3077, Hydra = 3074, Blade = 3153, Bilge = 3144, Rand = 3143;
         private Boolean TiamatReady = false, HydraReady = false, BladeReady = false, BilgeReady = false, RandReady = false;
         private InventorySlot Ward = null;
@@ -22,13 +20,6 @@ namespace Master
 
         public LeeSin()
         {
-            QData = Player.Spellbook.GetSpell(SpellSlot.Q);
-            WData = Player.Spellbook.GetSpell(SpellSlot.W);
-            EData = Player.Spellbook.GetSpell(SpellSlot.E);
-            RData = Player.Spellbook.GetSpell(SpellSlot.R);
-            FData = Player.SummonerSpellbook.GetSpell(Player.GetSpellSlot("summonerflash"));
-            SData = Player.SummonerSpellbook.GetSpell(Player.GetSpellSlot("summonersmite"));
-            IData = Player.SummonerSpellbook.GetSpell(Player.GetSpellSlot("summonerdot"));
             SkillQ = new Spell(QData.Slot, QData.SData.CastRange[0]);//1300
             SkillW = new Spell(WData.Slot, WData.SData.CastRange[0]);
             SkillE = new Spell(EData.Slot, EData.SData.CastRange[0]);//575

@@ -10,25 +10,17 @@ namespace Master
 {
     class Tryndamere : Program
     {
-        private const String Version = "1.0.0";
-        private Spell SkillQ, SkillW, SkillE, SkillR;
-        private SpellDataInst QData, WData, EData, RData, IData;
-        private Boolean IReady = false;
+        private const String Version = "1.0.1";
         private Int32 Tiamat = 3077, Hydra = 3074, Blade = 3153, Bilge = 3144, Rand = 3143;
         private Boolean TiamatReady = false, HydraReady = false, BladeReady = false, BilgeReady = false, RandReady = false;
 
         public Tryndamere()
         {
-            QData = Player.Spellbook.GetSpell(SpellSlot.Q);
-            WData = Player.Spellbook.GetSpell(SpellSlot.W);
-            EData = Player.Spellbook.GetSpell(SpellSlot.E);
-            RData = Player.Spellbook.GetSpell(SpellSlot.R);
-            IData = Player.SummonerSpellbook.GetSpell(Player.GetSpellSlot("summonerdot"));
-            SkillQ = new Spell(QData.Slot, QData.SData.CastRange[0]);
-            SkillW = new Spell(WData.Slot, 750);
-            SkillE = new Spell(EData.Slot, 660);
-            SkillR = new Spell(RData.Slot, RData.SData.CastRange[0]);
-            SkillE.SetSkillshot(-EData.SData.SpellCastTime, EData.SData.LineWidth, EData.SData.MissileSpeed, false, SkillshotType.SkillshotLine);
+            SkillQ = new Spell(SpellSlot.Q, 320);
+            SkillW = new Spell(SpellSlot.W, 750);
+            SkillE = new Spell(SpellSlot.E, 660);
+            SkillR = new Spell(SpellSlot.R, 400);
+            SkillE.SetSkillshot(SkillE.Instance.SData.SpellCastTime, SkillE.Instance.SData.LineWidth, SkillE.Instance.SData.MissileSpeed, false, SkillshotType.SkillshotLine);
 
             Config.AddSubMenu(new Menu("Combo/Harass Settings", "csettings"));
             Config.SubMenu("csettings").AddItem(new MenuItem(Name + "qusage", "Use Q").SetValue(true));
@@ -115,7 +107,7 @@ namespace Master
             if (target == null) return;
             if (SkillE.IsReady() && target.Health < (SkillE.GetDamage(target) + Player.GetAutoAttackDamage(target)))
             {
-                SkillE.Cast(target, PacketCast);
+                SkillE.Cast(target.Position, PacketCast);
                 Player.IssueOrder(GameObjectOrder.AttackUnit, target);
             }
         }
@@ -132,13 +124,12 @@ namespace Master
             if (Config.Item(Name + "qusage").GetValue<bool>() && SkillQ.IsReady() && (Player.Health * 100 / Player.MaxHealth) <= Config.Item(Name + "autoqusage").GetValue<Slider>().Value && Utility.CountEnemysInRange((int)SkillE.Range) >= 1) SkillQ.Cast();
             if (Config.Item(Name + "wusage").GetValue<bool>() && SkillW.IsReady() && targetObj.IsValidTarget(SkillW.Range))
             {
-                if (Player.Path.Count() > 0 && Player.Path[0].Distance(targetObj.ServerPosition) < Player.Distance(targetObj))
+                if (Player.Path.Count() > 0 && Player.Path[0].Distance(targetObj.Position) < Player.Distance(targetObj))
                 {
-                    if (Player.Health < targetObj.Health) SkillW.Cast();
                 }
                 else SkillW.Cast();
             }
-            if (Config.Item(Name + "eusage").GetValue<bool>() && SkillE.IsReady() && targetObj.IsValidTarget(SkillE.Range)) SkillE.Cast(targetObj, PacketCast);
+            if (Config.Item(Name + "eusage").GetValue<bool>() && SkillE.IsReady() && targetObj.IsValidTarget(SkillE.Range) && Player.Distance(targetObj) > 350) SkillE.Cast(targetObj.Position, PacketCast);
             if (Config.Item(Name + "iusage").GetValue<bool>()) UseItem(targetObj);
             if (Config.Item(Name + "ignite").GetValue<bool>()) CastIgnite(targetObj);
         }
@@ -147,7 +138,7 @@ namespace Master
         {
             var minionObj = MinionManager.GetMinions(Player.Position, SkillE.Range, MinionTypes.All, MinionTeam.NotAlly).OrderBy(i => i.Distance(Player)).FirstOrDefault();
             if (minionObj == null) return;
-            if (Config.Item(Name + "useClearE").GetValue<bool>() && SkillE.IsReady()) SkillE.Cast(minionObj, PacketCast);
+            if (Config.Item(Name + "useClearE").GetValue<bool>() && SkillE.IsReady() && Player.Distance(minionObj) > 250) SkillE.Cast(minionObj.Position, PacketCast);
         }
 
         private void CastIgnite(Obj_AI_Hero target)

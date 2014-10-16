@@ -11,25 +11,16 @@ namespace Master
     class DrMundo : Program
     {
         private const String Version = "1.0.0";
-        private Spell SkillQ, SkillW, SkillE, SkillR;
-        private SpellDataInst QData, WData, EData, RData, SData, IData;
-        private Boolean SReady = false, IReady = false;
         private Int32 Rand = 3143;
         private Boolean RandReady = false;
 
         public DrMundo()
         {
-            QData = Player.Spellbook.GetSpell(SpellSlot.Q);
-            WData = Player.Spellbook.GetSpell(SpellSlot.W);
-            EData = Player.Spellbook.GetSpell(SpellSlot.E);
-            RData = Player.Spellbook.GetSpell(SpellSlot.R);
-            SData = Player.SummonerSpellbook.GetSpell(Player.GetSpellSlot("summonersmite"));
-            IData = Player.SummonerSpellbook.GetSpell(Player.GetSpellSlot("summonerdot"));
-            SkillQ = new Spell(QData.Slot, 1000);
-            SkillW = new Spell(WData.Slot, WData.SData.CastRange[0]);
-            SkillE = new Spell(EData.Slot, EData.SData.CastRange[0]);
-            SkillR = new Spell(RData.Slot, RData.SData.CastRange[0]);
-            SkillQ.SetSkillshot(-QData.SData.SpellCastTime, QData.SData.LineWidth, QData.SData.MissileSpeed, true, SkillshotType.SkillshotLine);
+            SkillQ = new Spell(SpellSlot.Q, 1100);
+            SkillW = new Spell(SpellSlot.W, 325);
+            SkillE = new Spell(SpellSlot.E, 300);
+            SkillR = new Spell(SpellSlot.R, 20);
+            SkillQ.SetSkillshot(SkillQ.Instance.SData.SpellCastTime, SkillQ.Instance.SData.LineWidth, SkillQ.Instance.SData.MissileSpeed, true, SkillshotType.SkillshotLine);
 
             Config.AddSubMenu(new Menu("Combo/Harass Settings", "csettings"));
             Config.SubMenu("csettings").AddItem(new MenuItem(Name + "qusage", "Use Q").SetValue(true));
@@ -40,6 +31,7 @@ namespace Master
             Config.SubMenu("csettings").AddItem(new MenuItem(Name + "iusage", "Use Item").SetValue(true));
 
             Config.AddSubMenu(new Menu("Misc Settings", "miscs"));
+            Config.SubMenu("miscs").AddItem(new MenuItem(Name + "lasthitQ", "Use Q To Last Hit").SetValue(true));
             Config.SubMenu("miscs").AddItem(new MenuItem(Name + "killstealQ", "Auto Q To Kill Steal").SetValue(true));
             Config.SubMenu("miscs").AddItem(new MenuItem(Name + "smite", "Auto Smite Collision Minion").SetValue(true));
             Config.SubMenu("miscs").AddItem(new MenuItem(Name + "skin", "Use Custom Skin").SetValue(true));
@@ -205,6 +197,13 @@ namespace Master
                 }
             }
             if (Config.Item(Name + "useClearQ").GetValue<bool>() && SkillQ.IsReady() && SkillQ.IsKillable(minionObj)) SkillQ.Cast(minionObj, PacketCast);
+        }
+
+        private void LastHit()
+        {
+            var minionObj = MinionManager.GetMinions(Player.Position, SkillQ.Range, MinionTypes.All, MinionTeam.NotAlly).OrderBy(i => i.Distance(Player)).FirstOrDefault();
+            if (minionObj == null || !Config.Item(Name + "lasthitQ").GetValue<bool>()) return;
+            if (SkillQ.IsReady() && SkillQ.IsKillable(minionObj)) SkillQ.Cast(minionObj, PacketCast);
         }
 
         private void CastIgnite(Obj_AI_Hero target)

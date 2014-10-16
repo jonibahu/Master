@@ -11,26 +11,22 @@ namespace Master
 {
     class Shen : Program
     {
-        private const String Version = "1.0.0";
-        private Spell SkillQ, SkillW, SkillE, SkillR, SkillP;
-        private SpellDataInst QData, WData, EData, RData, IData, PData;
-        private Boolean IReady = false;
+        private const String Version = "1.0.1";
+        private Spell SkillP;
+        private SpellDataInst PData;
+        private Int32 Rand = 3143;
+        private Boolean RandReady = false;
         private Int32 lastTimeAlert = 0;
 
         public Shen()
         {
-            QData = Player.Spellbook.GetSpell(SpellSlot.Q);
-            WData = Player.Spellbook.GetSpell(SpellSlot.W);
-            EData = Player.Spellbook.GetSpell(SpellSlot.E);
-            RData = Player.Spellbook.GetSpell(SpellSlot.R);
-            IData = Player.SummonerSpellbook.GetSpell(Player.GetSpellSlot("summonerdot"));
             PData = Player.Spellbook.GetSpell(Player.GetSpellSlot("ShenKiAttack", false));
-            SkillQ = new Spell(QData.Slot, QData.SData.CastRange[0]);
-            SkillW = new Spell(WData.Slot, WData.SData.CastRange[0]);
-            SkillE = new Spell(EData.Slot, 600);
-            SkillR = new Spell(RData.Slot, RData.SData.CastRange[0]);
-            SkillP = new Spell(PData.Slot, PData.SData.CastRange[0]);
-            SkillE.SetSkillshot(-EData.SData.SpellCastTime, EData.SData.LineWidth, EData.SData.MissileSpeed, false, SkillshotType.SkillshotLine);
+            SkillQ = new Spell(SpellSlot.Q, 475);
+            SkillW = new Spell(SpellSlot.W, 20);
+            SkillE = new Spell(SpellSlot.E, 600);
+            SkillR = new Spell(SpellSlot.R, 25000);
+            SkillP = new Spell(PData.Slot, Orbwalking.GetRealAutoAttackRange(null));
+            SkillE.SetSkillshot(SkillE.Instance.SData.SpellCastTime, SkillE.Instance.SData.LineWidth, SkillE.Instance.SData.MissileSpeed, false, SkillshotType.SkillshotLine);
 
             Config.AddSubMenu(new Menu("Combo/Harass Settings", "csettings"));
             Config.SubMenu("csettings").AddItem(new MenuItem(Name + "qusage", "Use Q").SetValue(true));
@@ -38,6 +34,7 @@ namespace Master
             Config.SubMenu("csettings").AddItem(new MenuItem(Name + "autowusage", "Use W If Hp Under").SetValue(new Slider(20, 1)));
             Config.SubMenu("csettings").AddItem(new MenuItem(Name + "eusage", "Use E").SetValue(true));
             Config.SubMenu("csettings").AddItem(new MenuItem(Name + "ignite", "Auto Ignite If Killable").SetValue(true));
+            Config.SubMenu("csettings").AddItem(new MenuItem(Name + "iusage", "Use Item").SetValue(true));
 
             Config.AddSubMenu(new Menu("Lane/Jungle Clear Settings", "LaneJungClear"));
             Config.SubMenu("LaneJungClear").AddItem(new MenuItem(Name + "useClearQ", "Use Q").SetValue(true));
@@ -69,6 +66,7 @@ namespace Master
         private void OnGameUpdate(EventArgs args)
         {
             IReady = (IData != null && IData.Slot != SpellSlot.Unknown && IData.State == SpellState.Ready);
+            RandReady = Items.CanUseItem(Rand);
             if (Player.IsDead) return;
             var target = SimpleTs.GetTarget(1500, SimpleTs.DamageType.Magical);
             if (Orbwalker.ActiveMode != Orbwalking.OrbwalkingMode.Mixed && targetObj != null)
@@ -146,6 +144,7 @@ namespace Master
                 if (Config.Item(Name + "eusage").GetValue<bool>() && SkillE.IsReady()) SkillE.Cast(targetObj, PacketCast);
             }
             if (Config.Item(Name + "wusage").GetValue<bool>() && SkillW.IsReady() && targetObj.IsValidTarget(SkillE.Range) && (Player.Health * 100 / Player.MaxHealth) <= Config.Item(Name + "autowusage").GetValue<Slider>().Value) SkillW.Cast();
+            if (Config.Item(Name + "iusage").GetValue<bool>() && RandReady && Utility.CountEnemysInRange(450) >= 1) Items.UseItem(Rand);
             if (Config.Item(Name + "ignite").GetValue<bool>()) CastIgnite(targetObj);
         }
 

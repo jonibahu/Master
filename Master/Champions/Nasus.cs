@@ -10,24 +10,16 @@ namespace Master
 {
     class Nasus : Program
     {
-        private const String Version = "1.0.0";
-        private Spell SkillQ, SkillW, SkillE, SkillR;
-        private SpellDataInst QData, WData, EData, RData, IData;
-        private Boolean IReady = false;
+        private const String Version = "1.0.1";
         private Int32 Rand = 3143, Sheen = 3057, Iceborn = 3025;
         private Boolean RandReady = false;
 
         public Nasus()
         {
-            QData = Player.Spellbook.GetSpell(SpellSlot.Q);
-            WData = Player.Spellbook.GetSpell(SpellSlot.W);
-            EData = Player.Spellbook.GetSpell(SpellSlot.E);
-            RData = Player.Spellbook.GetSpell(SpellSlot.R);
-            IData = Player.SummonerSpellbook.GetSpell(Player.GetSpellSlot("summonerdot"));
-            SkillQ = new Spell(QData.Slot, QData.SData.CastRange[0]);
-            SkillW = new Spell(WData.Slot, WData.SData.CastRange[0]);
-            SkillE = new Spell(EData.Slot, EData.SData.CastRange[0]);
-            SkillR = new Spell(RData.Slot, RData.SData.CastRange[0]);
+            SkillQ = new Spell(SpellSlot.Q, 300);
+            SkillW = new Spell(SpellSlot.W, 600);
+            SkillE = new Spell(SpellSlot.E, 650);
+            SkillR = new Spell(SpellSlot.R, 20);
 
             Config.AddSubMenu(new Menu("Combo/Harass Settings", "csettings"));
             Config.SubMenu("csettings").AddItem(new MenuItem(Name + "qusage", "Use Q").SetValue(true));
@@ -134,22 +126,19 @@ namespace Master
             if (targetObj == null) return;
             if (Config.Item(Name + "wusage").GetValue<bool>() && SkillW.IsReady() && targetObj.IsValidTarget(SkillW.Range)) SkillW.Cast(targetObj, PacketCast);
             if (Config.Item(Name + "eusage").GetValue<bool>() && SkillE.IsReady() && targetObj.IsValidTarget(SkillE.Range)) SkillE.Cast(targetObj.Position, PacketCast);
-            if (Config.Item(Name + "qusage").GetValue<bool>())
+            if (Config.Item(Name + "qusage").GetValue<bool>() && targetObj.IsValidTarget(SkillQ.Range))
             {
-                var QCooldown = new Int32[] { 8, 7, 6, 5, 4 };
-                var HitWhenQCd = Math.Floor(QCooldown[SkillQ.Level - 1] / (1 / Player.AttackSpeedMod));
+                var HitWhenQCd = Math.Floor(SkillQ.Instance.Cooldown / (1 / Player.AttackSpeedMod));
                 var DmgWhenQCd = HitWhenQCd * Player.GetAutoAttackDamage(targetObj);
                 if ((targetObj.Health < GetBonusDmg(targetObj) || targetObj.Health > DmgWhenQCd + GetBonusDmg(targetObj)) && (SkillQ.IsReady() || Player.HasBuff("NasusQ", true)))
                 {
-                    Orbwalker.SetAttacks(false);
                     if (!Player.HasBuff("NasusQ", true)) SkillQ.Cast();
                     Player.IssueOrder(GameObjectOrder.AttackUnit, targetObj);
                 }
                 else if (Orbwalking.CanAttack() && targetObj.Health > Player.GetAutoAttackDamage(targetObj)) Player.IssueOrder(GameObjectOrder.AttackUnit, targetObj);
             }
-            if (Config.Item(Name + "iusage").GetValue<bool>()) UseItem(targetObj);
+            if (Config.Item(Name + "iusage").GetValue<bool>() && RandReady && Utility.CountEnemysInRange(450) >= 1) Items.UseItem(Rand);
             if (Config.Item(Name + "ignite").GetValue<bool>()) CastIgnite(targetObj);
-            Orbwalker.SetAttacks(true);
         }
 
         private void LaneJungClear()
@@ -157,43 +146,37 @@ namespace Master
             var minionObj = MinionManager.GetMinions(Player.Position, SkillE.Range, MinionTypes.All, MinionTeam.NotAlly).OrderBy(i => i.Distance(Player)).FirstOrDefault();
             if (minionObj == null) return;
             if (Config.Item(Name + "useClearE").GetValue<bool>() && SkillE.IsReady()) SkillE.Cast(minionObj.Position, PacketCast);
-            if (Config.Item(Name + "useClearQ").GetValue<bool>() && Orbwalking.InAutoAttackRange(minionObj))
+            if (Config.Item(Name + "useClearQ").GetValue<bool>() && minionObj.IsValidTarget(SkillQ.Range))
             {
-                var QCooldown = new Int32[] { 8, 7, 6, 5, 4 };
-                var HitWhenQCd = Math.Floor(QCooldown[SkillQ.Level - 1] / (1 / Player.AttackSpeedMod));
+                var HitWhenQCd = Math.Floor(SkillQ.Instance.Cooldown / (1 / Player.AttackSpeedMod));
                 var DmgWhenQCd = HitWhenQCd * Player.GetAutoAttackDamage(minionObj);
                 if ((minionObj.Health < GetBonusDmg(minionObj) || minionObj.Health > DmgWhenQCd + GetBonusDmg(minionObj)) && (SkillQ.IsReady() || Player.HasBuff("NasusQ", true)))
                 {
-                    Orbwalker.SetAttacks(false);
                     if (!Player.HasBuff("NasusQ", true)) SkillQ.Cast();
                     Player.IssueOrder(GameObjectOrder.AttackUnit, minionObj);
                 }
                 else if (Orbwalking.CanAttack() && minionObj.Health > Player.GetAutoAttackDamage(minionObj)) Player.IssueOrder(GameObjectOrder.AttackUnit, minionObj);
             }
-            Orbwalker.SetAttacks(true);
         }
 
         private void LastHit()
         {
             var minionObj = MinionManager.GetMinions(Player.Position, SkillE.Range, MinionTypes.All, MinionTeam.NotAlly).OrderBy(i => i.Distance(Player)).FirstOrDefault();
             if (minionObj == null) return;
-            if (minionObj.Health < GetBonusDmg(minionObj) && Orbwalking.InAutoAttackRange(minionObj) && (SkillQ.IsReady() || Player.HasBuff("NasusQ", true)))
+            if (minionObj.Health < GetBonusDmg(minionObj) && minionObj.IsValidTarget(SkillQ.Range))
             {
-                Orbwalker.SetAttacks(false);
-                if (!Player.HasBuff("NasusQ", true)) SkillQ.Cast();
-                Player.IssueOrder(GameObjectOrder.AttackUnit, minionObj);
+                if (SkillQ.IsReady() && !Player.HasBuff("NasusQ", true))
+                {
+                    SkillQ.Cast();
+                    Player.IssueOrder(GameObjectOrder.AttackUnit, minionObj);
+                }
+                if (Player.HasBuff("NasusQ", true)) Player.IssueOrder(GameObjectOrder.AttackUnit, minionObj);
             }
-            Orbwalker.SetAttacks(true);
         }
 
         private void CastIgnite(Obj_AI_Hero target)
         {
             if (IReady && target.IsValidTarget(IData.SData.CastRange[0]) && target.Health < Player.GetSummonerSpellDamage(target, Damage.SummonerSpell.Ignite)) Player.SummonerSpellbook.CastSpell(IData.Slot, target);
-        }
-
-        private void UseItem(Obj_AI_Hero target)
-        {
-            if (RandReady && Utility.CountEnemysInRange(450) >= 1) Items.UseItem(Rand);
         }
     }
 }
