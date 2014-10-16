@@ -12,6 +12,7 @@ namespace Master
         public static Spell SkillQ, SkillW, SkillE, SkillR;
         public static SpellDataInst FData, SData, IData;
         public static Boolean FReady = false, SReady = false, IReady = false;
+        public static Int32 Tiamat = 3077, Hydra = 3074, Blade = 3153, Bilge = 3144, Rand = 3143, Youmuu = 3142;
         public static Menu Config;
         public static String Name;
         public static Boolean PacketCast = false;

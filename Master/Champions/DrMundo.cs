@@ -11,8 +11,6 @@ namespace Master
     class DrMundo : Program
     {
         private const String Version = "1.0.1";
-        private Int32 Rand = 3143;
-        private Boolean RandReady = false;
 
         public DrMundo()
         {
@@ -66,7 +64,6 @@ namespace Master
         {
             SReady = (SData != null && SData.Slot != SpellSlot.Unknown && SData.State == SpellState.Ready);
             IReady = (IData != null && IData.Slot != SpellSlot.Unknown && IData.State == SpellState.Ready);
-            RandReady = Items.CanUseItem(Rand);
             if (Player.IsDead) return;
             var target = SimpleTs.GetTarget(1500, SimpleTs.DamageType.Magical);
             if (Orbwalker.ActiveMode != Orbwalking.OrbwalkingMode.Mixed && targetObj != null)
@@ -165,7 +162,7 @@ namespace Master
                 }
             }
             if (Config.Item(Name + "eusage").GetValue<bool>() && SkillE.IsReady() && Orbwalking.InAutoAttackRange(targetObj)) SkillE.Cast();
-            if (Config.Item(Name + "iusage").GetValue<bool>() && RandReady && Utility.CountEnemysInRange(450) >= 1) Items.UseItem(Rand);
+            if (Config.Item(Name + "iusage").GetValue<bool>() && Items.CanUseItem(Rand) && Utility.CountEnemysInRange(450) >= 1) Items.UseItem(Rand);
             if (Config.Item(Name + "ignite").GetValue<bool>()) CastIgnite(targetObj);
         }
 

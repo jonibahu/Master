@@ -11,8 +11,6 @@ namespace Master
     class Renekton : Program
     {
         private const String Version = "1.0.1";
-        private Int32 Tiamat = 3077, Hydra = 3074, Rand = 3143;
-        private Boolean TiamatReady = false, HydraReady = false, RandReady = false;
         private Vector3 DashBackPos = default(Vector3);
 
         public Renekton()
@@ -73,9 +71,6 @@ namespace Master
         private void OnGameUpdate(EventArgs args)
         {
             IReady = (IData != null && IData.Slot != SpellSlot.Unknown && IData.State == SpellState.Ready);
-            TiamatReady = Items.CanUseItem(Tiamat);
-            HydraReady = Items.CanUseItem(Hydra);
-            RandReady = Items.CanUseItem(Rand);
             if (Player.IsDead) return;
             var target = SimpleTs.GetTarget(1500, SimpleTs.DamageType.Physical);
             if (Orbwalker.ActiveMode != Orbwalking.OrbwalkingMode.Mixed && targetObj != null)
@@ -142,8 +137,8 @@ namespace Master
         private void CancelW()
         {
             if (Player.HasBuff("RenektonPreExecute") || !targetObj.IsValidTarget(SkillW.Range)) return;
-            if (TiamatReady) Items.UseItem(Tiamat);
-            if (HydraReady) Items.UseItem(Hydra);
+            if (Items.CanUseItem(Tiamat)) Items.UseItem(Tiamat);
+            if (Items.CanUseItem(Hydra)) Items.UseItem(Hydra);
         }
 
         private void OnProcessSpellCast(Obj_AI_Base sender, GameObjectProcessSpellCastEventArgs args)
@@ -202,8 +197,8 @@ namespace Master
             if (Config.Item(Name + "useClearE").GetValue<bool>() && SkillE.IsReady() && SkillE.Instance.Name != "RenektonSliceAndDice" && !Player.IsDashing()) SkillE.Cast(minionObj, PacketCast);
             if (Config.Item(Name + "useClearI").GetValue<bool>() && Player.Distance(minionObj) <= 350 && !Player.IsDashing())
             {
-                if (TiamatReady) Items.UseItem(Tiamat);
-                if (HydraReady) Items.UseItem(Hydra);
+                if (Items.CanUseItem(Tiamat)) Items.UseItem(Tiamat);
+                if (Items.CanUseItem(Hydra)) Items.UseItem(Hydra);
             }
         }
 
@@ -214,9 +209,9 @@ namespace Master
 
         private void UseItem(Obj_AI_Hero target)
         {
-            if (TiamatReady && Utility.CountEnemysInRange(350) >= 1) Items.UseItem(Tiamat);
-            if (HydraReady && (Utility.CountEnemysInRange(350) >= 2 || (Player.GetAutoAttackDamage(target) < target.Health && Utility.CountEnemysInRange(350) == 1))) Items.UseItem(Hydra);
-            if (RandReady && Utility.CountEnemysInRange(450) >= 1) Items.UseItem(Rand);
+            if (Items.CanUseItem(Tiamat) && Utility.CountEnemysInRange(350) >= 1) Items.UseItem(Tiamat);
+            if (Items.CanUseItem(Hydra) && (Utility.CountEnemysInRange(350) >= 2 || (Player.GetAutoAttackDamage(target) < target.Health && Utility.CountEnemysInRange(350) == 1))) Items.UseItem(Hydra);
+            if (Items.CanUseItem(Rand) && Utility.CountEnemysInRange(450) >= 1) Items.UseItem(Rand);
         }
     }
 }

@@ -13,7 +13,6 @@ namespace Master
         private const String Version = "1.1.0";
         private Obj_AI_Base allyObj = null;
         private SpellDataInst QData, WData, EData, RData;
-        private Int32 Tiamat = 3077, Hydra = 3074, Blade = 3153, Bilge = 3144, Rand = 3143;
         private Boolean TiamatReady = false, HydraReady = false, BladeReady = false, BilgeReady = false, RandReady = false;
         private InventorySlot Ward = null;
         private Int32 lastTimeWard = 0, lastTimeJump = 0;

@@ -11,8 +11,7 @@ namespace Master
     class Nasus : Program
     {
         private const String Version = "1.0.1";
-        private Int32 Rand = 3143, Sheen = 3057, Iceborn = 3025;
-        private Boolean RandReady = false;
+        private Int32 Sheen = 3057, Iceborn = 3025;
 
         public Nasus()
         {
@@ -67,7 +66,6 @@ namespace Master
         private void OnGameUpdate(EventArgs args)
         {
             IReady = (IData != null && IData.Slot != SpellSlot.Unknown && IData.State == SpellState.Ready);
-            RandReady = Items.CanUseItem(Rand);
             if (Player.IsDead) return;
             var target = SimpleTs.GetTarget(1500, SimpleTs.DamageType.Physical);
             if (Orbwalker.ActiveMode != Orbwalking.OrbwalkingMode.Mixed && targetObj != null)
@@ -137,7 +135,7 @@ namespace Master
                 }
                 else if (Orbwalking.CanAttack() && targetObj.Health > Player.GetAutoAttackDamage(targetObj)) Player.IssueOrder(GameObjectOrder.AttackUnit, targetObj);
             }
-            if (Config.Item(Name + "iusage").GetValue<bool>() && RandReady && Utility.CountEnemysInRange(450) >= 1) Items.UseItem(Rand);
+            if (Config.Item(Name + "iusage").GetValue<bool>() && Items.CanUseItem(Rand) && Utility.CountEnemysInRange(450) >= 1) Items.UseItem(Rand);
             if (Config.Item(Name + "ignite").GetValue<bool>()) CastIgnite(targetObj);
         }
 

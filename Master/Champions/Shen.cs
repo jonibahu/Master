@@ -11,11 +11,9 @@ namespace Master
 {
     class Shen : Program
     {
-        private const String Version = "1.0.2";
+        private const String Version = "1.0.3";
         private Spell SkillP;
         private SpellDataInst PData;
-        private Int32 Rand = 3143;
-        private Boolean RandReady = false;
         private Int32 lastTimeAlert = 0;
 
         public Shen()
@@ -42,6 +40,7 @@ namespace Master
 
             Config.AddSubMenu(new Menu("Misc Settings", "miscs"));
             Config.SubMenu("miscs").AddItem(new MenuItem(Name + "lasthitQ", "Use Q To Last Hit").SetValue(true));
+            Config.SubMenu("miscs").AddItem(new MenuItem(Name + "useInterE", "Use E To Interrupt").SetValue(true));
             Config.SubMenu("miscs").AddItem(new MenuItem(Name + "skin", "Use Custom Skin").SetValue(true));
             Config.SubMenu("miscs").AddItem(new MenuItem(Name + "skin1", "Skin Changer").SetValue(new Slider(6, 1, 7)));
             Config.SubMenu("miscs").AddItem(new MenuItem(Name + "packetCast", "Use Packet To Cast").SetValue(true));
@@ -61,13 +60,13 @@ namespace Master
             }
             Game.OnGameUpdate += OnGameUpdate;
             Drawing.OnDraw += OnDraw;
+            Interrupter.OnPossibleToInterrupt += OnPossibleToInterrupt;
             Game.PrintChat("<font color = \"#33CCCC\">Master of {0}</font> <font color = \"#fff8e7\">Brian v{1}</font>", Name, Version);
         }
 
         private void OnGameUpdate(EventArgs args)
         {
             IReady = (IData != null && IData.Slot != SpellSlot.Unknown && IData.State == SpellState.Ready);
-            RandReady = Items.CanUseItem(Rand);
             if (Player.IsDead) return;
             var target = SimpleTs.GetTarget(1500, SimpleTs.DamageType.Magical);
             if (Orbwalker.ActiveMode != Orbwalking.OrbwalkingMode.Mixed && targetObj != null)
@@ -105,6 +104,12 @@ namespace Master
             if (Player.IsDead) return;
             if (Config.Item(Name + "DrawQ").GetValue<bool>() && SkillQ.Level > 0) Utility.DrawCircle(Player.Position, SkillQ.Range, SkillQ.IsReady() ? Color.Green : Color.Red);
             if (Config.Item(Name + "DrawE").GetValue<bool>() && SkillE.Level > 0) Utility.DrawCircle(Player.Position, SkillE.Range, SkillE.IsReady() ? Color.Green : Color.Red);
+        }
+
+        private void OnPossibleToInterrupt(Obj_AI_Base unit, InterruptableSpell spell)
+        {
+            if (!Config.Item(Name + "useInterE").GetValue<bool>()) return;
+            if (unit.IsValidTarget(SkillE.Range) && SkillE.IsReady()) SkillE.Cast(unit, PacketCast);
         }
 
         private void UltimateAlert()
@@ -149,7 +154,7 @@ namespace Master
                 if (Config.Item(Name + "eusage").GetValue<bool>() && SkillE.IsReady()) SkillE.Cast(targetObj, PacketCast);
             }
             if (Config.Item(Name + "wusage").GetValue<bool>() && SkillW.IsReady() && targetObj.IsValidTarget(SkillE.Range) && (Player.Health * 100 / Player.MaxHealth) <= Config.Item(Name + "autowusage").GetValue<Slider>().Value) SkillW.Cast();
-            if (Config.Item(Name + "iusage").GetValue<bool>() && RandReady && Utility.CountEnemysInRange(450) >= 1) Items.UseItem(Rand);
+            if (Config.Item(Name + "iusage").GetValue<bool>() && Items.CanUseItem(Rand) && Utility.CountEnemysInRange(450) >= 1) Items.UseItem(Rand);
             if (Config.Item(Name + "ignite").GetValue<bool>()) CastIgnite(targetObj);
         }
 
