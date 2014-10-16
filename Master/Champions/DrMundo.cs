@@ -10,7 +10,7 @@ namespace Master
 {
     class DrMundo : Program
     {
-        private const String Version = "1.0.0";
+        private const String Version = "1.0.1";
         private Int32 Rand = 3143;
         private Boolean RandReady = false;
 

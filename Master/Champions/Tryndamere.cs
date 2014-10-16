@@ -10,7 +10,7 @@ namespace Master
 {
     class Tryndamere : Program
     {
-        private const String Version = "1.0.1";
+        private const String Version = "1.0.2";
         private Int32 Tiamat = 3077, Hydra = 3074, Blade = 3153, Bilge = 3144, Rand = 3143;
         private Boolean TiamatReady = false, HydraReady = false, BladeReady = false, BilgeReady = false, RandReady = false;
 
@@ -105,9 +105,9 @@ namespace Master
         {
             var target = SimpleTs.GetTarget(SkillE.Range, SimpleTs.DamageType.Physical);
             if (target == null) return;
-            if (SkillE.IsReady() && target.Health < (SkillE.GetDamage(target) + Player.GetAutoAttackDamage(target)))
+            if (SkillE.IsReady() && target.Health < SkillE.GetDamage(target) + Player.GetAutoAttackDamage(target))
             {
-                SkillE.Cast(target.Position, PacketCast);
+                SkillE.Cast(Player.Position + Vector3.Normalize(SkillE.GetPrediction(target).CastPosition - Player.Position) * SkillE.Range, PacketCast);
                 Player.IssueOrder(GameObjectOrder.AttackUnit, target);
             }
         }
@@ -124,21 +124,32 @@ namespace Master
             if (Config.Item(Name + "qusage").GetValue<bool>() && SkillQ.IsReady() && (Player.Health * 100 / Player.MaxHealth) <= Config.Item(Name + "autoqusage").GetValue<Slider>().Value && Utility.CountEnemysInRange((int)SkillE.Range) >= 1) SkillQ.Cast();
             if (Config.Item(Name + "wusage").GetValue<bool>() && SkillW.IsReady() && targetObj.IsValidTarget(SkillW.Range))
             {
-                if (Player.Path.Count() > 0 && Player.Path[0].Distance(targetObj.Position) < Player.Distance(targetObj))
+                var Pos = (targetObj.IsMoving) ? targetObj.Position + Vector3.Normalize(targetObj.Path[0] - targetObj.Position) * 100 : default(Vector3);
+                var targetMoveS = (targetObj.IsMoving && Player.Distance(Pos) > Player.Distance(targetObj)) ? targetObj.MoveSpeed : 0;
+                var targetReach = (Player.Distance(targetObj) - Orbwalking.GetRealAutoAttackRange(targetObj)) / ((Player.MoveSpeed - targetMoveS == 0) ? 0.0001 : Player.MoveSpeed - targetMoveS);
+                if (targetReach > 1.7 || targetReach < 0)
                 {
+                    if (!Orbwalking.InAutoAttackRange(targetObj)) SkillW.Cast();
                 }
-                else SkillW.Cast();
+                else
+                {
+                    if (Player.GetAutoAttackDamage(targetObj) < targetObj.GetAutoAttackDamage(Player) || Player.Health < targetObj.Health) SkillW.Cast();
+                }
+                //if (Player.Path.Count() > 0 && Player.Path[0].Distance(targetObj.Position) < Player.Distance(targetObj))
+                //{
+                //}
+                //else SkillW.Cast();
             }
-            if (Config.Item(Name + "eusage").GetValue<bool>() && SkillE.IsReady() && targetObj.IsValidTarget(SkillE.Range) && Player.Distance(targetObj) > 350) SkillE.Cast(targetObj.Position, PacketCast);
+            if (Config.Item(Name + "eusage").GetValue<bool>() && SkillE.IsReady() && targetObj.IsValidTarget(SkillE.Range) && !Orbwalking.InAutoAttackRange(targetObj)) SkillE.Cast(Player.Position + Vector3.Normalize(SkillE.GetPrediction(targetObj).CastPosition - Player.Position) * SkillE.Range, PacketCast);
             if (Config.Item(Name + "iusage").GetValue<bool>()) UseItem(targetObj);
             if (Config.Item(Name + "ignite").GetValue<bool>()) CastIgnite(targetObj);
         }
 
         private void LaneJungClear()
         {
-            var minionObj = MinionManager.GetMinions(Player.Position, SkillE.Range, MinionTypes.All, MinionTeam.NotAlly).OrderBy(i => i.Distance(Player)).FirstOrDefault();
-            if (minionObj == null) return;
-            if (Config.Item(Name + "useClearE").GetValue<bool>() && SkillE.IsReady() && Player.Distance(minionObj) > 250) SkillE.Cast(minionObj.Position, PacketCast);
+            var minionObj = MinionManager.GetMinions(Player.Position, SkillE.Range, MinionTypes.All, MinionTeam.NotAlly).OrderBy(i => i.Distance(Player));
+            if (minionObj.Count() == 0) return;
+            if (Config.Item(Name + "useClearE").GetValue<bool>() && SkillE.IsReady()) SkillE.Cast(SkillE.GetCircularFarmLocation(minionObj.ToList()).Position, PacketCast);
         }
 
         private void CastIgnite(Obj_AI_Hero target)

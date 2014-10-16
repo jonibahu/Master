@@ -11,7 +11,7 @@ namespace Master
 {
     class Shen : Program
     {
-        private const String Version = "1.0.1";
+        private const String Version = "1.0.2";
         private Spell SkillP;
         private SpellDataInst PData;
         private Int32 Rand = 3143;
@@ -41,6 +41,7 @@ namespace Master
             Config.SubMenu("LaneJungClear").AddItem(new MenuItem(Name + "useClearW", "Use W").SetValue(true));
 
             Config.AddSubMenu(new Menu("Misc Settings", "miscs"));
+            Config.SubMenu("miscs").AddItem(new MenuItem(Name + "lasthitQ", "Use Q To Last Hit").SetValue(true));
             Config.SubMenu("miscs").AddItem(new MenuItem(Name + "skin", "Use Custom Skin").SetValue(true));
             Config.SubMenu("miscs").AddItem(new MenuItem(Name + "skin1", "Skin Changer").SetValue(new Slider(6, 1, 7)));
             Config.SubMenu("miscs").AddItem(new MenuItem(Name + "packetCast", "Use Packet To Cast").SetValue(true));
@@ -86,7 +87,11 @@ namespace Master
             {
                 NormalCombo();
             }
-            else if (Orbwalker.ActiveMode == Orbwalking.OrbwalkingMode.LaneClear) LaneJungClear();
+            else if (Orbwalker.ActiveMode == Orbwalking.OrbwalkingMode.LaneClear)
+            {
+                LaneJungClear();
+            }
+            else if (Orbwalker.ActiveMode == Orbwalking.OrbwalkingMode.LastHit) LastHit();
             if (Config.Item(Name + "alert").GetValue<bool>() && SkillR.IsReady()) UltimateAlert();
             if (Config.Item(Name + "skin").GetValue<bool>() && Config.Item(Name + "skin1").GetValue<Slider>().Value != lastSkinId)
             {
@@ -154,6 +159,13 @@ namespace Master
             if (minionObj == null) return;
             if (Config.Item(Name + "useClearW").GetValue<bool>() && SkillW.IsReady() && Orbwalking.InAutoAttackRange(minionObj)) SkillW.Cast();
             if (Config.Item(Name + "useClearQ").GetValue<bool>() && SkillQ.IsReady()) SkillQ.Cast(minionObj, PacketCast);
+        }
+
+        private void LastHit()
+        {
+            var minionObj = MinionManager.GetMinions(Player.Position, SkillQ.Range, MinionTypes.All, MinionTeam.NotAlly).OrderBy(i => i.Distance(Player)).FirstOrDefault();
+            if (minionObj == null || !Config.Item(Name + "lasthitQ").GetValue<bool>()) return;
+            if (SkillQ.IsReady() && SkillQ.IsKillable(minionObj)) SkillQ.Cast(minionObj, PacketCast);
         }
 
         private void CastIgnite(Obj_AI_Hero target)
