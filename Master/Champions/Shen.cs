@@ -26,7 +26,7 @@ namespace Master
             SkillP = new Spell(PData.Slot, Orbwalking.GetRealAutoAttackRange(null));
             SkillE.SetSkillshot(SkillE.Instance.SData.SpellCastTime, SkillE.Instance.SData.LineWidth, SkillE.Instance.SData.MissileSpeed, false, SkillshotType.SkillshotLine);
 
-            Config.AddSubMenu(new Menu("Combo/Harass Settings", "csettings"));
+            Config.AddSubMenu(new Menu("Combo/Harass", "csettings"));
             Config.SubMenu("csettings").AddItem(new MenuItem(Name + "qusage", "Use Q").SetValue(true));
             Config.SubMenu("csettings").AddItem(new MenuItem(Name + "wusage", "Use W").SetValue(true));
             Config.SubMenu("csettings").AddItem(new MenuItem(Name + "autowusage", "Use W If Hp Under").SetValue(new Slider(20, 1)));
@@ -34,22 +34,22 @@ namespace Master
             Config.SubMenu("csettings").AddItem(new MenuItem(Name + "ignite", "Auto Ignite If Killable").SetValue(true));
             Config.SubMenu("csettings").AddItem(new MenuItem(Name + "iusage", "Use Item").SetValue(true));
 
-            Config.AddSubMenu(new Menu("Lane/Jungle Clear Settings", "LaneJungClear"));
+            Config.AddSubMenu(new Menu("Lane/Jungle Clear", "LaneJungClear"));
             Config.SubMenu("LaneJungClear").AddItem(new MenuItem(Name + "useClearQ", "Use Q").SetValue(true));
             Config.SubMenu("LaneJungClear").AddItem(new MenuItem(Name + "useClearW", "Use W").SetValue(true));
 
-            Config.AddSubMenu(new Menu("Misc Settings", "miscs"));
+            Config.AddSubMenu(new Menu("Misc", "miscs"));
             Config.SubMenu("miscs").AddItem(new MenuItem(Name + "lasthitQ", "Use Q To Last Hit").SetValue(true));
             Config.SubMenu("miscs").AddItem(new MenuItem(Name + "useInterE", "Use E To Interrupt").SetValue(true));
             Config.SubMenu("miscs").AddItem(new MenuItem(Name + "skin", "Use Custom Skin").SetValue(true));
             Config.SubMenu("miscs").AddItem(new MenuItem(Name + "skin1", "Skin Changer").SetValue(new Slider(6, 1, 7)));
             Config.SubMenu("miscs").AddItem(new MenuItem(Name + "packetCast", "Use Packet To Cast").SetValue(true));
 
-            Config.AddSubMenu(new Menu("Ultimate Settings", "useUlt"));
+            Config.AddSubMenu(new Menu("Ultimate", "useUlt"));
             Config.SubMenu("useUlt").AddItem(new MenuItem(Name + "alert", "Alert Ally Low Hp").SetValue(true));
             Config.SubMenu("useUlt").AddItem(new MenuItem(Name + "autoalert", "Alert When Ally Hp Under").SetValue(new Slider(30, 1)));
 
-            Config.AddSubMenu(new Menu("Draw Settings", "DrawSettings"));
+            Config.AddSubMenu(new Menu("Draw", "DrawSettings"));
             Config.SubMenu("DrawSettings").AddItem(new MenuItem(Name + "DrawQ", "Q Range").SetValue(true));
             Config.SubMenu("DrawSettings").AddItem(new MenuItem(Name + "DrawE", "E Range").SetValue(true));
 
@@ -133,25 +133,25 @@ namespace Master
             //Game.PrintChat("{0}/{1}", Player.GetAutoAttackDamage(targetObj), 4 + (4 * Player.Level) + (0.1 * Player.ScriptHealthBonus));
             if (targetObj.Health < Player.GetComboDamage(targetObj, ComboQE) + AADmg)
             {
-                if (Config.Item(Name + "qusage").GetValue<bool>() && SkillQ.IsReady() && SkillQ.IsKillable(targetObj))
+                if (Config.Item(Name + "qusage").GetValue<bool>() && SkillQ.IsReady() && targetObj.IsValidTarget(SkillQ.Range) && SkillQ.IsKillable(targetObj))
                 {
                     SkillQ.Cast(targetObj, PacketCast);
                 }
-                else if (Config.Item(Name + "qusage").GetValue<bool>() && SkillQ.IsReady() && Config.Item(Name + "eusage").GetValue<bool>() && SkillE.IsReady() && targetObj.Health < Player.GetComboDamage(targetObj, ComboQE))
+                else if (Config.Item(Name + "qusage").GetValue<bool>() && SkillQ.IsReady() && Config.Item(Name + "eusage").GetValue<bool>() && SkillE.IsReady() && targetObj.Health < Player.GetComboDamage(targetObj, ComboQE) && targetObj.IsValidTarget(SkillE.Range))
                 {
                     SkillE.Cast(targetObj, PacketCast);
                     SkillQ.Cast(targetObj, PacketCast);
                 }
                 else
                 {
-                    if (Config.Item(Name + "qusage").GetValue<bool>() && SkillQ.IsReady()) SkillQ.Cast(targetObj, PacketCast);
-                    if (Config.Item(Name + "eusage").GetValue<bool>() && SkillE.IsReady()) SkillE.Cast(targetObj, PacketCast);
+                    if (Config.Item(Name + "qusage").GetValue<bool>() && SkillQ.IsReady() && targetObj.IsValidTarget(SkillQ.Range)) SkillQ.Cast(targetObj, PacketCast);
+                    if (Config.Item(Name + "eusage").GetValue<bool>() && SkillE.IsReady() && targetObj.IsValidTarget(SkillE.Range)) SkillE.Cast(targetObj, PacketCast);
                 }
             }
             else
             {
-                if (Config.Item(Name + "qusage").GetValue<bool>() && SkillQ.IsReady()) SkillQ.Cast(targetObj, PacketCast);
-                if (Config.Item(Name + "eusage").GetValue<bool>() && SkillE.IsReady()) SkillE.Cast(targetObj, PacketCast);
+                if (Config.Item(Name + "qusage").GetValue<bool>() && SkillQ.IsReady() && targetObj.IsValidTarget(SkillQ.Range)) SkillQ.Cast(targetObj, PacketCast);
+                if (Config.Item(Name + "eusage").GetValue<bool>() && SkillE.IsReady() && targetObj.IsValidTarget(SkillE.Range)) SkillE.Cast(targetObj, PacketCast);
             }
             if (Config.Item(Name + "wusage").GetValue<bool>() && SkillW.IsReady() && targetObj.IsValidTarget(SkillE.Range) && (Player.Health * 100 / Player.MaxHealth) <= Config.Item(Name + "autowusage").GetValue<Slider>().Value) SkillW.Cast();
             if (Config.Item(Name + "iusage").GetValue<bool>() && Items.CanUseItem(Rand) && Utility.CountEnemysInRange(450) >= 1) Items.UseItem(Rand);

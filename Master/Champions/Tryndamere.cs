@@ -10,7 +10,7 @@ namespace Master
 {
     class Tryndamere : Program
     {
-        private const String Version = "1.0.2";
+        private const String Version = "1.0.3";
 
         public Tryndamere()
         {
@@ -20,28 +20,28 @@ namespace Master
             SkillR = new Spell(SpellSlot.R, 400);
             SkillE.SetSkillshot(SkillE.Instance.SData.SpellCastTime, SkillE.Instance.SData.LineWidth, SkillE.Instance.SData.MissileSpeed, false, SkillshotType.SkillshotLine);
 
-            Config.AddSubMenu(new Menu("Combo/Harass Settings", "csettings"));
+            Config.AddSubMenu(new Menu("Combo/Harass", "csettings"));
             Config.SubMenu("csettings").AddItem(new MenuItem(Name + "qusage", "Use Q").SetValue(true));
-            Config.SubMenu("csettings").AddItem(new MenuItem(Name + "autoqusage", "Use Q If Hp Under").SetValue(new Slider(20, 1)));
+            Config.SubMenu("csettings").AddItem(new MenuItem(Name + "autoqusage", "Use Q If Hp Under").SetValue(new Slider(40, 1)));
             Config.SubMenu("csettings").AddItem(new MenuItem(Name + "wusage", "Use W").SetValue(true));
             Config.SubMenu("csettings").AddItem(new MenuItem(Name + "eusage", "Use E In Combo").SetValue(true));
             Config.SubMenu("csettings").AddItem(new MenuItem(Name + "ignite", "Auto Ignite If Killable").SetValue(true));
             Config.SubMenu("csettings").AddItem(new MenuItem(Name + "iusage", "Use Item").SetValue(true));
 
-            Config.AddSubMenu(new Menu("Misc Settings", "miscs"));
+            Config.AddSubMenu(new Menu("Misc", "miscs"));
             Config.SubMenu("miscs").AddItem(new MenuItem(Name + "killstealE", "Auto E To Kill Steal").SetValue(true));
             Config.SubMenu("miscs").AddItem(new MenuItem(Name + "skin", "Use Custom Skin").SetValue(true));
             Config.SubMenu("miscs").AddItem(new MenuItem(Name + "skin1", "Skin Changer").SetValue(new Slider(4, 1, 7)));
             Config.SubMenu("miscs").AddItem(new MenuItem(Name + "packetCast", "Use Packet To Cast").SetValue(true));
 
-            Config.AddSubMenu(new Menu("Ultimate Settings", "useUlt"));
+            Config.AddSubMenu(new Menu("Ultimate", "useUlt"));
             Config.SubMenu("useUlt").AddItem(new MenuItem(Name + "useR", "Auto Use R").SetValue(true));
-            Config.SubMenu("useUlt").AddItem(new MenuItem(Name + "autouseR", "Use R If Hp Under").SetValue(new Slider(10, 1)));
+            Config.SubMenu("useUlt").AddItem(new MenuItem(Name + "autouseR", "Use R If Hp Under").SetValue(new Slider(20, 1)));
 
-            Config.AddSubMenu(new Menu("Lane/Jungle Clear Settings", "LaneJungClear"));
+            Config.AddSubMenu(new Menu("Lane/Jungle Clear", "LaneJungClear"));
             Config.SubMenu("LaneJungClear").AddItem(new MenuItem(Name + "useClearE", "Use E").SetValue(true));
 
-            Config.AddSubMenu(new Menu("Draw Settings", "DrawSettings"));
+            Config.AddSubMenu(new Menu("Draw", "DrawSettings"));
             Config.SubMenu("DrawSettings").AddItem(new MenuItem(Name + "DrawW", "W Range").SetValue(true));
             Config.SubMenu("DrawSettings").AddItem(new MenuItem(Name + "DrawE", "E Range").SetValue(true));
 
@@ -117,7 +117,7 @@ namespace Master
         private void NormalCombo(bool IsHarass)
         {
             if (targetObj == null) return;
-            if (Config.Item(Name + "qusage").GetValue<bool>() && SkillQ.IsReady() && (Player.Health * 100 / Player.MaxHealth) <= Config.Item(Name + "autoqusage").GetValue<Slider>().Value && Utility.CountEnemysInRange((int)SkillE.Range) >= 1) SkillQ.Cast();
+            if (Config.Item(Name + "qusage").GetValue<bool>() && SkillQ.IsReady() && (Player.Health * 100 / Player.MaxHealth) <= Config.Item(Name + "autoqusage").GetValue<Slider>().Value && Utility.CountEnemysInRange(1000) >= 1) SkillQ.Cast();
             if (Config.Item(Name + "wusage").GetValue<bool>() && SkillW.IsReady() && targetObj.IsValidTarget(SkillW.Range))
             {
                 var Pos = (targetObj.IsMoving) ? targetObj.Position + Vector3.Normalize(targetObj.Path[0] - targetObj.Position) * 100 : default(Vector3);
@@ -139,9 +139,9 @@ namespace Master
 
         private void LaneJungClear()
         {
-            var minionObj = MinionManager.GetMinions(Player.Position, SkillE.Range, MinionTypes.All, MinionTeam.NotAlly).OrderBy(i => i.Distance(Player));
-            if (minionObj.Count() == 0) return;
-            if (Config.Item(Name + "useClearE").GetValue<bool>() && SkillE.IsReady()) SkillE.Cast(SkillE.GetCircularFarmLocation(minionObj.ToList()).Position, PacketCast);
+            var minionObj = MinionManager.GetMinions(Player.Position, SkillE.Range, MinionTypes.All, MinionTeam.NotAlly);
+            if (minionObj.Count == 0) return;
+            if (Config.Item(Name + "useClearE").GetValue<bool>() && SkillE.IsReady()) SkillE.Cast(SkillE.GetLineFarmLocation(minionObj.ToList()).Position, PacketCast);
         }
 
         private void CastIgnite(Obj_AI_Hero target)

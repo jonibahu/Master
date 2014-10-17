@@ -10,7 +10,7 @@ namespace Master
 {
     class DrMundo : Program
     {
-        private const String Version = "1.0.1";
+        private const String Version = "1.0.2";
 
         public DrMundo()
         {
@@ -20,7 +20,7 @@ namespace Master
             SkillR = new Spell(SpellSlot.R, 20);
             SkillQ.SetSkillshot(SkillQ.Instance.SData.SpellCastTime, SkillQ.Instance.SData.LineWidth, SkillQ.Instance.SData.MissileSpeed, true, SkillshotType.SkillshotLine);
 
-            Config.AddSubMenu(new Menu("Combo/Harass Settings", "csettings"));
+            Config.AddSubMenu(new Menu("Combo/Harass", "csettings"));
             Config.SubMenu("csettings").AddItem(new MenuItem(Name + "qusage", "Use Q").SetValue(true));
             Config.SubMenu("csettings").AddItem(new MenuItem(Name + "wusage", "Use W").SetValue(true));
             Config.SubMenu("csettings").AddItem(new MenuItem(Name + "autowusage", "Use W If Hp Above").SetValue(new Slider(20, 1)));
@@ -28,7 +28,7 @@ namespace Master
             Config.SubMenu("csettings").AddItem(new MenuItem(Name + "ignite", "Auto Ignite If Killable").SetValue(true));
             Config.SubMenu("csettings").AddItem(new MenuItem(Name + "iusage", "Use Item").SetValue(true));
 
-            Config.AddSubMenu(new Menu("Misc Settings", "miscs"));
+            Config.AddSubMenu(new Menu("Misc", "miscs"));
             Config.SubMenu("miscs").AddItem(new MenuItem(Name + "lasthitQ", "Use Q To Last Hit").SetValue(true));
             Config.SubMenu("miscs").AddItem(new MenuItem(Name + "killstealQ", "Auto Q To Kill Steal").SetValue(true));
             Config.SubMenu("miscs").AddItem(new MenuItem(Name + "smite", "Auto Smite Collision Minion").SetValue(true));
@@ -36,17 +36,17 @@ namespace Master
             Config.SubMenu("miscs").AddItem(new MenuItem(Name + "skin1", "Skin Changer").SetValue(new Slider(7, 1, 8)));
             Config.SubMenu("miscs").AddItem(new MenuItem(Name + "packetCast", "Use Packet To Cast").SetValue(true));
 
-            Config.AddSubMenu(new Menu("Ultimate Settings", "useUlt"));
+            Config.AddSubMenu(new Menu("Ultimate", "useUlt"));
             Config.SubMenu("useUlt").AddItem(new MenuItem(Name + "useR", "Auto Use R").SetValue(true));
             Config.SubMenu("useUlt").AddItem(new MenuItem(Name + "autouseR", "Use R If Hp Under").SetValue(new Slider(35, 1)));
 
-            Config.AddSubMenu(new Menu("Lane/Jungle Clear Settings", "LaneJungClear"));
+            Config.AddSubMenu(new Menu("Lane/Jungle Clear", "LaneJungClear"));
             Config.SubMenu("LaneJungClear").AddItem(new MenuItem(Name + "useClearQ", "Use Q").SetValue(true));
             Config.SubMenu("LaneJungClear").AddItem(new MenuItem(Name + "useClearW", "Use W").SetValue(true));
             Config.SubMenu("LaneJungClear").AddItem(new MenuItem(Name + "useClearAutoW", "Use W If Hp Above").SetValue(new Slider(20, 1)));
             Config.SubMenu("LaneJungClear").AddItem(new MenuItem(Name + "useClearE", "Use E").SetValue(true));
 
-            Config.AddSubMenu(new Menu("Draw Settings", "DrawSettings"));
+            Config.AddSubMenu(new Menu("Draw", "DrawSettings"));
             Config.SubMenu("DrawSettings").AddItem(new MenuItem(Name + "DrawQ", "Q Range").SetValue(true));
             Config.SubMenu("DrawSettings").AddItem(new MenuItem(Name + "DrawW", "W Range").SetValue(true));
 
@@ -179,7 +179,7 @@ namespace Master
             {
                 if ((Player.Health * 100 / Player.MaxHealth) > Config.Item(Name + "useClearAutoW").GetValue<Slider>().Value)
                 {
-                    if (minionObj.IsValidTarget(SkillW.Range))
+                    if (MinionManager.GetMinions(Player.Position, SkillW.Range, MinionTypes.All, MinionTeam.NotAlly).Count >= 2)
                     {
                         if (!Player.HasBuff("BurningAgony")) SkillW.Cast();
                     }
