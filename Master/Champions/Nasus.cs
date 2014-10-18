@@ -55,14 +55,6 @@ namespace Master
             Game.PrintChat("<font color = \"#33CCCC\">Master of {0}</font> <font color = \"#fff8e7\">Brian v{1}</font>", Name, Version);
         }
 
-        private double GetBonusDmg(Obj_AI_Base target)
-        {
-            double DmgItem = 0;
-            if (Items.HasItem(Sheen) && (Items.CanUseItem(Sheen) || Player.HasBuff("sheen", true)) && Player.BaseAttackDamage * 1 > DmgItem) DmgItem = Player.BaseAttackDamage * 1;
-            if (Items.HasItem(Iceborn) && (Items.CanUseItem(Iceborn) || Player.HasBuff("itemfrozenfist", true)) && Player.BaseAttackDamage * 1.25 > DmgItem) DmgItem = Player.BaseAttackDamage * 1.25;
-            return SkillQ.GetDamage(target) + Player.CalcDamage(target, Damage.DamageType.Physical, DmgItem);
-        }
-
         private void OnGameUpdate(EventArgs args)
         {
             IReady = (IData != null && IData.Slot != SpellSlot.Unknown && IData.State == SpellState.Ready);
@@ -169,9 +161,12 @@ namespace Master
             }
         }
 
-        private void CastIgnite(Obj_AI_Hero target)
+        private double GetBonusDmg(Obj_AI_Base target)
         {
-            if (IReady && target.IsValidTarget(IData.SData.CastRange[0]) && target.Health < Player.GetSummonerSpellDamage(target, Damage.SummonerSpell.Ignite)) Player.SummonerSpellbook.CastSpell(IData.Slot, target);
+            double DmgItem = 0;
+            if (Items.HasItem(Sheen) && (Items.CanUseItem(Sheen) || Player.HasBuff("sheen", true)) && Player.BaseAttackDamage * 1 > DmgItem) DmgItem = Player.BaseAttackDamage * 1;
+            if (Items.HasItem(Iceborn) && (Items.CanUseItem(Iceborn) || Player.HasBuff("itemfrozenfist", true)) && Player.BaseAttackDamage * 1.25 > DmgItem) DmgItem = Player.BaseAttackDamage * 1.25;
+            return SkillQ.GetDamage(target) + Player.CalcDamage(target, Damage.DamageType.Physical, DmgItem);
         }
     }
 }

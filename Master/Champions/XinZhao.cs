@@ -58,7 +58,7 @@ namespace Master
             Game.OnGameUpdate += OnGameUpdate;
             Drawing.OnDraw += OnDraw;
             Interrupter.OnPossibleToInterrupt += OnPossibleToInterrupt;
-            Orbwalking.AfterAttack += Orbwalking_AfterAttack;
+            Orbwalking.AfterAttack += AfterAttack;
             Game.PrintChat("<font color = \"#33CCCC\">Master of {0}</font> <font color = \"#fff8e7\">Brian v{1}</font>", Name, Version);
         }
 
@@ -106,7 +106,7 @@ namespace Master
             if (unit.IsValidTarget(SkillR.Range) && SkillR.IsReady() && !unit.HasBuff("xenzhaointimidate")) SkillR.Cast();
         }
 
-        void Orbwalking_AfterAttack(Obj_AI_Base unit, Obj_AI_Base target)
+        void AfterAttack(Obj_AI_Base unit, Obj_AI_Base target)
         {
             if (unit.IsMe && target.IsValidTarget(SkillQ.Range) && SkillQ.IsReady() && Orbwalker.ActiveMode == Orbwalking.OrbwalkingMode.Combo) SkillQ.Cast();
         }
@@ -140,11 +140,6 @@ namespace Master
                 if (Items.CanUseItem(Tiamat)) Items.UseItem(Tiamat);
                 if (Items.CanUseItem(Hydra)) Items.UseItem(Hydra);
             }
-        }
-
-        private void CastIgnite(Obj_AI_Hero target)
-        {
-            if (IReady && target.IsValidTarget(IData.SData.CastRange[0]) && target.Health < Player.GetSummonerSpellDamage(target, Damage.SummonerSpell.Ignite)) Player.SummonerSpellbook.CastSpell(IData.Slot, target);
         }
 
         private void UseItem(Obj_AI_Hero target)

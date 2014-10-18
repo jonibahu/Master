@@ -52,5 +52,32 @@ namespace Master
             {
             }
         }
+
+        public static void Orbwalk(Obj_AI_Base target = null)
+        {
+            Orbwalking.Orbwalk((target == null) ? SimpleTs.GetTarget(-1, SimpleTs.DamageType.Physical) : target, Game.CursorPos, Config.Item("ExtraWindup").GetValue<Slider>().Value, Config.Item("HoldPosRadius").GetValue<Slider>().Value);
+        }
+
+        public static bool CheckingCollision(Obj_AI_Hero target, Spell Skill)
+        {
+            foreach (var col in MinionManager.GetMinions(Player.Position, 1500, MinionTypes.All, MinionTeam.NotAlly))
+            {
+                var Segment = Geometry.ProjectOn(col.Position.To2D(), Player.Position.To2D(), target.Position.To2D());
+                if (Segment.IsOnSegment && col.Distance(Segment.SegmentPoint) <= col.BoundingRadius + Skill.Width)
+                {
+                    if (SReady && col.IsValidTarget(SData.SData.CastRange[0]) && col.Health < Player.GetSummonerSpellDamage(col, Damage.SummonerSpell.Smite))
+                    {
+                        Player.SummonerSpellbook.CastSpell(SData.Slot, col);
+                        return true;
+                    }
+                }
+            }
+            return false;
+        }
+
+        public static void CastIgnite(Obj_AI_Hero target)
+        {
+            if (IReady && target.IsValidTarget(IData.SData.CastRange[0]) && target.Health < Player.GetSummonerSpellDamage(target, Damage.SummonerSpell.Ignite)) Player.SummonerSpellbook.CastSpell(IData.Slot, target);
+        }
     }
 }

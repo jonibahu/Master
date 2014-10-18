@@ -10,7 +10,7 @@ namespace Master
 {
     class Renekton : Program
     {
-        private const String Version = "1.0.2";
+        private const String Version = "1.0.3";
         private Vector3 DashBackPos = default(Vector3);
 
         public Renekton()
@@ -135,17 +135,14 @@ namespace Master
             }
         }
 
-        private void CancelW()
-        {
-            if (Player.HasBuff("RenektonPreExecute") || !targetObj.IsValidTarget(SkillW.Range)) return;
-            if (Items.CanUseItem(Tiamat)) Items.UseItem(Tiamat);
-            if (Items.CanUseItem(Hydra)) Items.UseItem(Hydra);
-        }
-
         private void OnProcessSpellCast(Obj_AI_Base sender, GameObjectProcessSpellCastEventArgs args)
         {
             if (!sender.IsMe) return;
-            if (Config.Item(Name + "calcelW").GetValue<bool>() && args.SData.Name == "RenektonExecute") Utility.DelayAction.Add(1, () => CancelW());
+            if (Config.Item(Name + "calcelW").GetValue<bool>() && Player.HasBuff("RenektonPreExecute") && args.SData.Name == Name + "BasicAttack" && args.Target == targetObj)
+            {
+                if (Items.CanUseItem(Tiamat)) Items.UseItem(Tiamat);
+                if (Items.CanUseItem(Hydra)) Items.UseItem(Hydra);
+            }
             if (Orbwalker.ActiveMode == Orbwalking.OrbwalkingMode.Mixed && args.SData.Name == "RenektonSliceAndDice" && DashBackPos == default(Vector3) && Player.IsDashing()) DashBackPos = Player.Position;
         }
 
@@ -201,11 +198,6 @@ namespace Master
                 if (Items.CanUseItem(Tiamat)) Items.UseItem(Tiamat);
                 if (Items.CanUseItem(Hydra)) Items.UseItem(Hydra);
             }
-        }
-
-        private void CastIgnite(Obj_AI_Hero target)
-        {
-            if (IReady && target.IsValidTarget(IData.SData.CastRange[0]) && target.Health < Player.GetSummonerSpellDamage(target, Damage.SummonerSpell.Ignite)) Player.SummonerSpellbook.CastSpell(IData.Slot, target);
         }
 
         private void UseItem(Obj_AI_Hero target)

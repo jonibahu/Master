@@ -13,17 +13,15 @@ namespace Master
     {
         private const String Version = "1.0.3";
         private Spell SkillP;
-        private SpellDataInst PData;
         private Int32 lastTimeAlert = 0;
 
         public Shen()
         {
-            PData = Player.Spellbook.GetSpell(Player.GetSpellSlot("ShenKiAttack", false));
             SkillQ = new Spell(SpellSlot.Q, 475);
             SkillW = new Spell(SpellSlot.W, 20);
             SkillE = new Spell(SpellSlot.E, 600);
             SkillR = new Spell(SpellSlot.R, 25000);
-            SkillP = new Spell(PData.Slot, Orbwalking.GetRealAutoAttackRange(null));
+            SkillP = new Spell(Player.GetSpellSlot("ShenKiAttack", false), Orbwalking.GetRealAutoAttackRange(null));
             SkillE.SetSkillshot(SkillE.Instance.SData.SpellCastTime, SkillE.Instance.SData.LineWidth, SkillE.Instance.SData.MissileSpeed, false, SkillshotType.SkillshotLine);
 
             Config.AddSubMenu(new Menu("Combo/Harass", "csettings"));
@@ -171,11 +169,6 @@ namespace Master
             var minionObj = MinionManager.GetMinions(Player.Position, SkillQ.Range, MinionTypes.All, MinionTeam.NotAlly).OrderBy(i => i.Distance(Player)).FirstOrDefault();
             if (minionObj == null || !Config.Item(Name + "lasthitQ").GetValue<bool>()) return;
             if (SkillQ.IsReady() && SkillQ.IsKillable(minionObj)) SkillQ.Cast(minionObj, PacketCast);
-        }
-
-        private void CastIgnite(Obj_AI_Hero target)
-        {
-            if (IReady && target.IsValidTarget(IData.SData.CastRange[0]) && target.Health < Player.GetSummonerSpellDamage(target, Damage.SummonerSpell.Ignite)) Player.SummonerSpellbook.CastSpell(IData.Slot, target);
         }
     }
 }

@@ -100,30 +100,13 @@ namespace Master
             if (Config.Item(Name + "DrawW").GetValue<bool>() && SkillW.Level > 0) Utility.DrawCircle(Player.Position, SkillW.Range, SkillW.IsReady() ? Color.Green : Color.Red);
         }
 
-        private bool CheckingCollision(Obj_AI_Hero target)
-        {
-            foreach (var col in MinionManager.GetMinions(Player.Position, 1500, MinionTypes.All, MinionTeam.NotAlly))
-            {
-                var Segment = Geometry.ProjectOn(col.Position.To2D(), Player.Position.To2D(), target.Position.To2D());
-                if (Segment.IsOnSegment && col.Distance(Segment.SegmentPoint) <= col.BoundingRadius + SkillQ.Width)
-                {
-                    if (col.IsValidTarget(SData.SData.CastRange[0]) && col.Health < Player.GetSummonerSpellDamage(col, Damage.SummonerSpell.Smite))
-                    {
-                        Player.SummonerSpellbook.CastSpell(SData.Slot, col);
-                        return true;
-                    }
-                }
-            }
-            return false;
-        }
-
         private void KillSteal()
         {
             var target = SimpleTs.GetTarget(SkillQ.Range, SimpleTs.DamageType.Magical);
             if (target == null) return;
             if (SkillQ.IsReady() && SkillQ.IsKillable(target))
             {
-                if (Config.Item(Name + "smite").GetValue<bool>() && SReady && SkillQ.GetPrediction(target).Hitchance == HitChance.Collision) CheckingCollision(target);
+                if (Config.Item(Name + "smite").GetValue<bool>() && SkillQ.GetPrediction(target).Hitchance == HitChance.Collision) CheckingCollision(target, SkillQ);
                 SkillQ.Cast(target, PacketCast);
             }
         }
@@ -140,7 +123,7 @@ namespace Master
             if (targetObj == null) return;
             if (Config.Item(Name + "qusage").GetValue<bool>() && SkillQ.IsReady())
             {
-                if (Config.Item(Name + "smite").GetValue<bool>() && SReady && SkillQ.GetPrediction(targetObj).Hitchance == HitChance.Collision) CheckingCollision(targetObj);
+                if (Config.Item(Name + "smite").GetValue<bool>() && SkillQ.GetPrediction(targetObj).Hitchance == HitChance.Collision) CheckingCollision(targetObj, SkillQ);
                 SkillQ.Cast(targetObj, PacketCast);
             }
             if (Config.Item(Name + "wusage").GetValue<bool>() && SkillW.IsReady())
@@ -201,11 +184,6 @@ namespace Master
             var minionObj = MinionManager.GetMinions(Player.Position, SkillQ.Range, MinionTypes.All, MinionTeam.NotAlly).OrderBy(i => i.Distance(Player)).FirstOrDefault();
             if (minionObj == null || !Config.Item(Name + "lasthitQ").GetValue<bool>()) return;
             if (SkillQ.IsReady() && SkillQ.IsKillable(minionObj)) SkillQ.Cast(minionObj, PacketCast);
-        }
-
-        private void CastIgnite(Obj_AI_Hero target)
-        {
-            if (IReady && target.IsValidTarget(IData.SData.CastRange[0]) && target.Health < Player.GetSummonerSpellDamage(target, Damage.SummonerSpell.Ignite)) Player.SummonerSpellbook.CastSpell(IData.Slot, target);
         }
     }
 }

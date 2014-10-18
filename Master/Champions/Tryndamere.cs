@@ -10,7 +10,7 @@ namespace Master
 {
     class Tryndamere : Program
     {
-        private const String Version = "1.0.3";
+        private const String Version = "1.0.4";
 
         public Tryndamere()
         {
@@ -52,6 +52,7 @@ namespace Master
             }
             Game.OnGameUpdate += OnGameUpdate;
             Drawing.OnDraw += OnDraw;
+            Obj_AI_Base.OnProcessSpellCast += OnProcessSpellCast;
             Game.PrintChat("<font color = \"#33CCCC\">Master of {0}</font> <font color = \"#fff8e7\">Brian v{1}</font>", Name, Version);
         }
 
@@ -101,6 +102,22 @@ namespace Master
             if (Config.Item(Name + "DrawE").GetValue<bool>() && SkillE.Level > 0) Utility.DrawCircle(Player.Position, SkillE.Range, SkillE.IsReady() ? Color.Green : Color.Red);
         }
 
+        void OnProcessSpellCast(Obj_AI_Base sender, GameObjectProcessSpellCastEventArgs args)
+        {
+            if (sender.IsMe || sender.IsAlly) return;
+            if (Config.Item(Name + "useR").GetValue<bool>() && SkillR.IsReady())
+            {
+                if (args.SData.Name == sender.Name + "BasicAttack")
+                {
+                    if (args.Target == Player && Player.Health <= sender.GetAutoAttackDamage(Player, true)) SkillR.Cast();
+                }
+                else if (args.Target == Player || args.End.Distance(Player.Position) <= 200)
+                {
+                    if (Player.Health <= sender.GetDamageSpell(Player, args.SData.Name).CalculatedDamage) SkillR.Cast();
+                }
+            }
+        }
+
         private void KillSteal()
         {
             var target = SimpleTs.GetTarget(SkillE.Range, SimpleTs.DamageType.Physical);
@@ -142,11 +159,6 @@ namespace Master
             var minionObj = MinionManager.GetMinions(Player.Position, SkillE.Range, MinionTypes.All, MinionTeam.NotAlly);
             if (minionObj.Count == 0) return;
             if (Config.Item(Name + "useClearE").GetValue<bool>() && SkillE.IsReady()) SkillE.Cast(SkillE.GetLineFarmLocation(minionObj.ToList()).Position, PacketCast);
-        }
-
-        private void CastIgnite(Obj_AI_Hero target)
-        {
-            if (IReady && target.IsValidTarget(IData.SData.CastRange[0]) && target.Health < Player.GetSummonerSpellDamage(target, Damage.SummonerSpell.Ignite)) Player.SummonerSpellbook.CastSpell(IData.Slot, target);
         }
 
         private void UseItem(Obj_AI_Hero target)
