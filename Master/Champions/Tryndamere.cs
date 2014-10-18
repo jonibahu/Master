@@ -36,7 +36,6 @@ namespace Master
 
             Config.AddSubMenu(new Menu("Ultimate", "useUlt"));
             Config.SubMenu("useUlt").AddItem(new MenuItem(Name + "useR", "Auto Use R").SetValue(true));
-            Config.SubMenu("useUlt").AddItem(new MenuItem(Name + "autouseR", "Use R If Hp Under").SetValue(new Slider(20, 1)));
 
             Config.AddSubMenu(new Menu("Lane/Jungle Clear", "LaneJungClear"));
             Config.SubMenu("LaneJungClear").AddItem(new MenuItem(Name + "useClearE", "Use E").SetValue(true));
@@ -87,7 +86,6 @@ namespace Master
                     break;
             }
             if (Config.Item(Name + "killstealE").GetValue<bool>()) KillSteal();
-            if (Config.Item(Name + "useR").GetValue<bool>()) AutoUltimate();
             if (Config.Item(Name + "skin").GetValue<bool>() && Config.Item(Name + "skin1").GetValue<Slider>().Value != lastSkinId)
             {
                 Packet.S2C.UpdateModel.Encoded(new Packet.S2C.UpdateModel.Struct(Player.NetworkId, Config.Item(Name + "skin1").GetValue<Slider>().Value, Name)).Process();
@@ -123,12 +121,6 @@ namespace Master
             var target = SimpleTs.GetTarget(SkillE.Range, SimpleTs.DamageType.Physical);
             if (target == null) return;
             if (SkillE.IsReady() && SkillE.IsKillable(target)) SkillE.Cast(Player.Position + Vector3.Normalize(SkillE.GetPrediction(target).CastPosition - Player.Position) * SkillE.Range, PacketCast);
-        }
-
-        private void AutoUltimate()
-        {
-            if (Utility.CountEnemysInRange(1000) == 0 || !SkillR.IsReady()) return;
-            if ((Player.Health * 100 / Player.MaxHealth) <= Config.Item(Name + "autouseR").GetValue<Slider>().Value) SkillR.Cast();
         }
 
         private void NormalCombo(bool IsHarass)
