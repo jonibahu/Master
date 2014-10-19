@@ -32,8 +32,7 @@ namespace Master
             Config.SubMenu("miscs").AddItem(new MenuItem(Name + "lasthitQ", "Use Q To Last Hit").SetValue(true));
             Config.SubMenu("miscs").AddItem(new MenuItem(Name + "killstealQ", "Auto Q To Kill Steal").SetValue(true));
             Config.SubMenu("miscs").AddItem(new MenuItem(Name + "smite", "Auto Smite Collision Minion").SetValue(true));
-            Config.SubMenu("miscs").AddItem(new MenuItem(Name + "skin", "Use Custom Skin").SetValue(true));
-            Config.SubMenu("miscs").AddItem(new MenuItem(Name + "skin1", "Skin Changer").SetValue(new Slider(7, 1, 8)));
+            Config.SubMenu("miscs").AddItem(new MenuItem(Name + "skin", "Skin Changer").SetValue(new Slider(7, 0, 7))).ValueChanged += SkinChanger;
             Config.SubMenu("miscs").AddItem(new MenuItem(Name + "packetCast", "Use Packet To Cast").SetValue(true));
 
             Config.AddSubMenu(new Menu("Ultimate", "useUlt"));
@@ -50,11 +49,6 @@ namespace Master
             Config.SubMenu("DrawSettings").AddItem(new MenuItem(Name + "DrawQ", "Q Range").SetValue(true));
             Config.SubMenu("DrawSettings").AddItem(new MenuItem(Name + "DrawW", "W Range").SetValue(true));
 
-            if (Config.Item(Name + "skin").GetValue<bool>())
-            {
-                Packet.S2C.UpdateModel.Encoded(new Packet.S2C.UpdateModel.Struct(Player.NetworkId, Config.Item(Name + "skin1").GetValue<Slider>().Value, Name)).Process();
-                lastSkinId = Config.Item(Name + "skin1").GetValue<Slider>().Value;
-            }
             Game.OnGameUpdate += OnGameUpdate;
             Drawing.OnDraw += OnDraw;
             Game.PrintChat("<font color = \"#33CCCC\">Master of {0}</font> <font color = \"#fff8e7\">Brian v{1}</font>", Name, Version);
@@ -62,8 +56,6 @@ namespace Master
 
         private void OnGameUpdate(EventArgs args)
         {
-            SReady = (SData != null && SData.Slot != SpellSlot.Unknown && SData.State == SpellState.Ready);
-            IReady = (IData != null && IData.Slot != SpellSlot.Unknown && IData.State == SpellState.Ready);
             if (Player.IsDead) return;
             var target = SimpleTs.GetTarget(1500, SimpleTs.DamageType.Magical);
             if (Orbwalker.ActiveMode != Orbwalking.OrbwalkingMode.Mixed && targetObj != null)
@@ -86,11 +78,6 @@ namespace Master
             else if (Orbwalker.ActiveMode == Orbwalking.OrbwalkingMode.LaneClear) LaneJungClear();
             if (Config.Item(Name + "killstealQ").GetValue<bool>()) KillSteal();
             if (Config.Item(Name + "useR").GetValue<bool>()) AutoUltimate();
-            if (Config.Item(Name + "skin").GetValue<bool>() && Config.Item(Name + "skin1").GetValue<Slider>().Value != lastSkinId)
-            {
-                Packet.S2C.UpdateModel.Encoded(new Packet.S2C.UpdateModel.Struct(Player.NetworkId, Config.Item(Name + "skin1").GetValue<Slider>().Value, Name)).Process();
-                lastSkinId = Config.Item(Name + "skin1").GetValue<Slider>().Value;
-            }
         }
 
         private void OnDraw(EventArgs args)

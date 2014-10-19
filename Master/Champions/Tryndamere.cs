@@ -30,12 +30,11 @@ namespace Master
 
             Config.AddSubMenu(new Menu("Misc", "miscs"));
             Config.SubMenu("miscs").AddItem(new MenuItem(Name + "killstealE", "Auto E To Kill Steal").SetValue(true));
-            Config.SubMenu("miscs").AddItem(new MenuItem(Name + "skin", "Use Custom Skin").SetValue(true));
-            Config.SubMenu("miscs").AddItem(new MenuItem(Name + "skin1", "Skin Changer").SetValue(new Slider(4, 1, 7)));
+            Config.SubMenu("miscs").AddItem(new MenuItem(Name + "skin", "Skin Changer").SetValue(new Slider(4, 0, 6))).ValueChanged += SkinChanger;
             Config.SubMenu("miscs").AddItem(new MenuItem(Name + "packetCast", "Use Packet To Cast").SetValue(true));
 
             Config.AddSubMenu(new Menu("Ultimate", "useUlt"));
-            Config.SubMenu("useUlt").AddItem(new MenuItem(Name + "useR", "Auto Use R").SetValue(true));
+            Config.SubMenu("useUlt").AddItem(new MenuItem(Name + "useR", "Auto Use R To Survive").SetValue(true));
 
             Config.AddSubMenu(new Menu("Lane/Jungle Clear", "LaneJungClear"));
             Config.SubMenu("LaneJungClear").AddItem(new MenuItem(Name + "useClearE", "Use E").SetValue(true));
@@ -44,11 +43,6 @@ namespace Master
             Config.SubMenu("DrawSettings").AddItem(new MenuItem(Name + "DrawW", "W Range").SetValue(true));
             Config.SubMenu("DrawSettings").AddItem(new MenuItem(Name + "DrawE", "E Range").SetValue(true));
 
-            if (Config.Item(Name + "skin").GetValue<bool>())
-            {
-                Packet.S2C.UpdateModel.Encoded(new Packet.S2C.UpdateModel.Struct(Player.NetworkId, Config.Item(Name + "skin1").GetValue<Slider>().Value, Name)).Process();
-                lastSkinId = Config.Item(Name + "skin1").GetValue<Slider>().Value;
-            }
             Game.OnGameUpdate += OnGameUpdate;
             Drawing.OnDraw += OnDraw;
             Obj_AI_Base.OnProcessSpellCast += OnProcessSpellCast;
@@ -57,7 +51,6 @@ namespace Master
 
         private void OnGameUpdate(EventArgs args)
         {
-            IReady = (IData != null && IData.Slot != SpellSlot.Unknown && IData.State == SpellState.Ready);
             if (Player.IsDead) return;
             var target = SimpleTs.GetTarget(1500, SimpleTs.DamageType.Physical);
             if (Orbwalker.ActiveMode != Orbwalking.OrbwalkingMode.Mixed && targetObj != null)
@@ -86,11 +79,6 @@ namespace Master
                     break;
             }
             if (Config.Item(Name + "killstealE").GetValue<bool>()) KillSteal();
-            if (Config.Item(Name + "skin").GetValue<bool>() && Config.Item(Name + "skin1").GetValue<Slider>().Value != lastSkinId)
-            {
-                Packet.S2C.UpdateModel.Encoded(new Packet.S2C.UpdateModel.Struct(Player.NetworkId, Config.Item(Name + "skin1").GetValue<Slider>().Value, Name)).Process();
-                lastSkinId = Config.Item(Name + "skin1").GetValue<Slider>().Value;
-            }
         }
 
         private void OnDraw(EventArgs args)
@@ -105,13 +93,17 @@ namespace Master
             if (sender.IsMe || sender.IsAlly) return;
             if (Config.Item(Name + "useR").GetValue<bool>() && SkillR.IsReady())
             {
-                if (args.SData.Name == sender.Name + "BasicAttack")
+                if (args.SData.Name.Contains("BasicAttack"))
                 {
                     if (args.Target == Player && Player.Health <= sender.GetAutoAttackDamage(Player, true)) SkillR.Cast();
                 }
                 else if (args.Target == Player || args.End.Distance(Player.Position) <= 200)
                 {
-                    if (Player.Health <= sender.GetDamageSpell(Player, args.SData.Name).CalculatedDamage) SkillR.Cast();
+                    if (args.SData.Name == "summonerdot")
+                    {
+                        if (Player.Health <= Damage.GetSummonerSpellDamage(sender as Obj_AI_Hero, Player, Damage.SummonerSpell.Ignite)) SkillR.Cast();
+                    }
+                    else if (Player.Health <= sender.GetDamageSpell(Player, args.SData.Name).CalculatedDamage) SkillR.Cast();
                 }
             }
         }

@@ -1,7 +1,9 @@
 ﻿using System;
+using System.Diagnostics;
 
 using LeagueSharp;
 using LeagueSharp.Common;
+using SharpDX;
 
 namespace Master
 {
@@ -10,17 +12,17 @@ namespace Master
         public static Obj_AI_Hero Player = ObjectManager.Player, targetObj = null;
         public static Orbwalking.Orbwalker Orbwalker;
         public static Spell SkillQ, SkillW, SkillE, SkillR;
-        public static SpellDataInst FData, SData, IData;
-        public static Boolean FReady = false, SReady = false, IReady = false;
+        private static SpellDataInst FData, SData, IData;
         public static Int32 Tiamat = 3077, Hydra = 3074, Blade = 3153, Bilge = 3144, Rand = 3143, Youmuu = 3142;
         public static Menu Config;
         public static String Name;
         public static Boolean PacketCast = false;
-        public static Int32 lastSkinId = 0;
+        public static Stopwatch TimeTick;
 
         private static void Main(string[] args)
         {
             CustomEvents.Game.OnGameLoad += OnGameLoad;
+            CustomEvents.Game.OnGameEnd += OnGameEnd;
         }
 
         private static void OnGameLoad(EventArgs args)
@@ -46,11 +48,25 @@ namespace Master
             Config.Item("LaneClear").DisplayName = "Lane/Jungle Clear";
             try
             {
-                if (Activator.CreateInstance(null, "Master." + Name) != null) Config.AddToMainMenu();
+                if (Activator.CreateInstance(null, "Master." + Name) != null)
+                {
+                    Config.AddToMainMenu();
+                    SkinChanger(null, null);
+                }
             }
             catch
             {
             }
+        }
+
+        private static void OnGameEnd(EventArgs args)
+        {
+            if (TimeTick.IsRunning) TimeTick.Stop();
+        }
+
+        public static void SkinChanger(object sender, OnValueChangeEventArgs e)
+        {
+            Utility.DelayAction.Add(10, () => Packet.S2C.UpdateModel.Encoded(new Packet.S2C.UpdateModel.Struct(Player.NetworkId, Config.Item(Name + "skin").GetValue<Slider>().Value, Name)).Process());
         }
 
         public static void Orbwalk(Obj_AI_Base target = null)
@@ -60,24 +76,52 @@ namespace Master
 
         public static bool CheckingCollision(Obj_AI_Hero target, Spell Skill)
         {
-            foreach (var col in MinionManager.GetMinions(Player.Position, 1500, MinionTypes.All, MinionTeam.NotAlly))
+            foreach (var col in MinionManager.GetMinions(Player.Position, Skill.Range, MinionTypes.All, MinionTeam.NotAlly))
             {
                 var Segment = Geometry.ProjectOn(col.Position.To2D(), Player.Position.To2D(), target.Position.To2D());
-                if (Segment.IsOnSegment && col.Distance(Segment.SegmentPoint) <= col.BoundingRadius + Skill.Width)
-                {
-                    if (SReady && col.IsValidTarget(SData.SData.CastRange[0]) && col.Health < Player.GetSummonerSpellDamage(col, Damage.SummonerSpell.Smite))
-                    {
-                        Player.SummonerSpellbook.CastSpell(SData.Slot, col);
-                        return true;
-                    }
-                }
+                if (Segment.IsOnSegment && col.Distance(Segment.SegmentPoint) <= col.BoundingRadius + Skill.Width && CastSmite(col)) return true;
             }
             return false;
         }
 
-        public static void CastIgnite(Obj_AI_Hero target)
+        public static bool FlashReady()
         {
-            if (IReady && target.IsValidTarget(IData.SData.CastRange[0]) && target.Health < Player.GetSummonerSpellDamage(target, Damage.SummonerSpell.Ignite)) Player.SummonerSpellbook.CastSpell(IData.Slot, target);
+            return (FData != null && FData.Slot != SpellSlot.Unknown && FData.State == SpellState.Ready);
+        }
+
+        public static bool SmiteReady()
+        {
+            return (SData != null && SData.Slot != SpellSlot.Unknown && SData.State == SpellState.Ready);
+        }
+
+        public static bool IgniteReady()
+        {
+            return (IData != null && IData.Slot != SpellSlot.Unknown && IData.State == SpellState.Ready);
+        }
+
+        public static bool CastFlash(Vector3 pos)
+        {
+            return (FlashReady() && Player.SummonerSpellbook.CastSpell(FData.Slot, pos));
+        }
+
+        public static bool CastSmite(Obj_AI_Base target)
+        {
+            if (SmiteReady() && target.IsValidTarget(SData.SData.CastRange[0]) && target.Health < Player.GetSummonerSpellDamage(target, Damage.SummonerSpell.Smite))
+            {
+                Player.SummonerSpellbook.CastSpell(SData.Slot, target);
+                return true;
+            }
+            return false;
+        }
+
+        public static bool CastIgnite(Obj_AI_Hero target)
+        {
+            if (IgniteReady() && target.IsValidTarget(IData.SData.CastRange[0]) && target.Health < Player.GetSummonerSpellDamage(target, Damage.SummonerSpell.Ignite))
+            {
+                Player.SummonerSpellbook.CastSpell(IData.Slot, target);
+                return true;
+            }
+            return false;
         }
     }
 }

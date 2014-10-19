@@ -29,8 +29,7 @@ namespace Master
 
             Config.AddSubMenu(new Menu("Misc", "miscs"));
             Config.SubMenu("miscs").AddItem(new MenuItem(Name + "killstealE", "Auto E To Kill Steal").SetValue(true));
-            Config.SubMenu("miscs").AddItem(new MenuItem(Name + "skin", "Use Custom Skin").SetValue(true));
-            Config.SubMenu("miscs").AddItem(new MenuItem(Name + "skin1", "Skin Changer").SetValue(new Slider(5, 1, 6)));
+            Config.SubMenu("miscs").AddItem(new MenuItem(Name + "skin", "Skin Changer").SetValue(new Slider(5, 0, 5))).ValueChanged += SkinChanger;
             Config.SubMenu("miscs").AddItem(new MenuItem(Name + "packetCast", "Use Packet To Cast").SetValue(true));
 
             Config.AddSubMenu(new Menu("Ultimate", "useUlt"));
@@ -45,11 +44,6 @@ namespace Master
             Config.SubMenu("DrawSettings").AddItem(new MenuItem(Name + "DrawW", "W Range").SetValue(true));
             Config.SubMenu("DrawSettings").AddItem(new MenuItem(Name + "DrawE", "E Range").SetValue(true));
 
-            if (Config.Item(Name + "skin").GetValue<bool>())
-            {
-                Packet.S2C.UpdateModel.Encoded(new Packet.S2C.UpdateModel.Struct(Player.NetworkId, Config.Item(Name + "skin1").GetValue<Slider>().Value, Name)).Process();
-                lastSkinId = Config.Item(Name + "skin1").GetValue<Slider>().Value;
-            }
             Game.OnGameUpdate += OnGameUpdate;
             Drawing.OnDraw += OnDraw;
             Game.PrintChat("<font color = \"#33CCCC\">Master of {0}</font> <font color = \"#fff8e7\">Brian v{1}</font>", Name, Version);
@@ -57,8 +51,6 @@ namespace Master
 
         private void OnGameUpdate(EventArgs args)
         {
-            IReady = (IData != null && IData.Slot != SpellSlot.Unknown && IData.State == SpellState.Ready);
-            Orbwalker.SetAttack(true);
             if (Player.IsDead) return;
             var target = SimpleTs.GetTarget(1500, SimpleTs.DamageType.Physical);
             if (Orbwalker.ActiveMode != Orbwalking.OrbwalkingMode.Mixed && targetObj != null)
@@ -85,11 +77,6 @@ namespace Master
             else if (Orbwalker.ActiveMode == Orbwalking.OrbwalkingMode.LastHit) LastHit();
             if (Config.Item(Name + "killstealE").GetValue<bool>()) KillSteal();
             if (Config.Item(Name + "useR").GetValue<bool>()) AutoUltimate();
-            if (Config.Item(Name + "skin").GetValue<bool>() && Config.Item(Name + "skin1").GetValue<Slider>().Value != lastSkinId)
-            {
-                Packet.S2C.UpdateModel.Encoded(new Packet.S2C.UpdateModel.Struct(Player.NetworkId, Config.Item(Name + "skin1").GetValue<Slider>().Value, Name)).Process();
-                lastSkinId = Config.Item(Name + "skin1").GetValue<Slider>().Value;
-            }
         }
 
         private void OnDraw(EventArgs args)
@@ -119,14 +106,18 @@ namespace Master
             if (Config.Item(Name + "eusage").GetValue<bool>() && SkillE.IsReady() && targetObj.IsValidTarget(SkillE.Range)) SkillE.Cast(targetObj.Position, PacketCast);
             if (Config.Item(Name + "qusage").GetValue<bool>() && targetObj.IsValidTarget(SkillQ.Range))
             {
-                var HitWhenQCd = Math.Floor(SkillQ.Instance.Cooldown / (1 / Player.AttackSpeedMod));
-                var DmgWhenQCd = HitWhenQCd * Player.GetAutoAttackDamage(targetObj);
+                var DmgWhenQCd = Math.Floor(SkillQ.Instance.Cooldown / (1 / Player.AttackSpeedMod)) * Player.GetAutoAttackDamage(targetObj);
                 if ((targetObj.Health < GetBonusDmg(targetObj) || targetObj.Health > DmgWhenQCd + GetBonusDmg(targetObj)) && (SkillQ.IsReady() || Player.HasBuff("NasusQ", true)))
                 {
+                    Orbwalker.SetAttack(false);
                     if (!Player.HasBuff("NasusQ", true)) SkillQ.Cast();
                     Player.IssueOrder(GameObjectOrder.AttackUnit, targetObj);
                 }
-                else if (Orbwalking.CanAttack() && targetObj.Health > Player.GetAutoAttackDamage(targetObj)) Player.IssueOrder(GameObjectOrder.AttackUnit, targetObj);
+                else if (targetObj.Health > Player.GetAutoAttackDamage(targetObj))
+                {
+                    Orbwalker.SetAttack(true);
+                    if (Orbwalking.CanAttack()) Player.IssueOrder(GameObjectOrder.AttackUnit, targetObj);
+                }
             }
             if (Config.Item(Name + "iusage").GetValue<bool>() && Items.CanUseItem(Rand) && Utility.CountEnemysInRange(450) >= 1) Items.UseItem(Rand);
             if (Config.Item(Name + "ignite").GetValue<bool>()) CastIgnite(targetObj);
@@ -134,27 +125,33 @@ namespace Master
 
         private void LaneJungClear()
         {
-            var minionObj = MinionManager.GetMinions(Player.Position, SkillE.Range, MinionTypes.All, MinionTeam.NotAlly, MinionOrderTypes.MaxHealth).OrderBy(i => i.Distance(Player)).FirstOrDefault();
+            var minionObj = (Obj_AI_Base)ObjectManager.Get<Obj_AI_Turret>().FirstOrDefault(i => i.IsValidTarget(SkillQ.Range) && i.Health < GetBonusDmg(i));
+            if (minionObj == null) minionObj = MinionManager.GetMinions(Player.Position, SkillE.Range, MinionTypes.All, MinionTeam.NotAlly).FirstOrDefault();
             if (minionObj == null) return;
-            if (Config.Item(Name + "useClearE").GetValue<bool>() && SkillE.IsReady()) SkillE.Cast(minionObj.Position, PacketCast);
+            if (Config.Item(Name + "useClearE").GetValue<bool>() && SkillE.IsReady() && minionObj is Obj_AI_Minion) SkillE.Cast(minionObj.Position, PacketCast);
             if (Config.Item(Name + "useClearQ").GetValue<bool>() && minionObj.IsValidTarget(SkillQ.Range))
             {
-                var HitWhenQCd = Math.Floor(SkillQ.Instance.Cooldown / (1 / Player.AttackSpeedMod));
-                var DmgWhenQCd = HitWhenQCd * Player.GetAutoAttackDamage(minionObj);
+                var DmgWhenQCd = Math.Floor(SkillQ.Instance.Cooldown / (1 / Player.AttackSpeedMod)) * Player.GetAutoAttackDamage(minionObj);
                 if ((minionObj.Health < GetBonusDmg(minionObj) || minionObj.Health > DmgWhenQCd + GetBonusDmg(minionObj)) && (SkillQ.IsReady() || Player.HasBuff("NasusQ", true)))
                 {
+                    Orbwalker.SetAttack(false);
                     if (!Player.HasBuff("NasusQ", true)) SkillQ.Cast();
                     Player.IssueOrder(GameObjectOrder.AttackUnit, minionObj);
                 }
-                else if (Orbwalking.CanAttack() && minionObj.Health > Player.GetAutoAttackDamage(minionObj)) Player.IssueOrder(GameObjectOrder.AttackUnit, minionObj);
+                else if (minionObj.Health > Player.GetAutoAttackDamage(minionObj))
+                {
+                    Orbwalker.SetAttack(true);
+                    if (Orbwalking.CanAttack()) Player.IssueOrder(GameObjectOrder.AttackUnit, minionObj);
+                }
             }
         }
 
         private void LastHit()
         {
-            var minionObj = MinionManager.GetMinions(Player.Position, SkillQ.Range, MinionTypes.All, MinionTeam.NotAlly, MinionOrderTypes.MaxHealth).OrderBy(i => i.Distance(Player)).FirstOrDefault();
+            var minionObj = (Obj_AI_Base)ObjectManager.Get<Obj_AI_Turret>().FirstOrDefault(i => i.IsValidTarget(SkillQ.Range) && i.Health < GetBonusDmg(i));
+            if (minionObj == null) minionObj = MinionManager.GetMinions(Player.Position, SkillQ.Range, MinionTypes.All, MinionTeam.NotAlly).FirstOrDefault(i => i.Health < GetBonusDmg(i));
             if (minionObj == null) return;
-            if (minionObj.Health < GetBonusDmg(minionObj) && (SkillQ.IsReady() || Player.HasBuff("NasusQ", true)))
+            if (SkillQ.IsReady() || Player.HasBuff("NasusQ", true))
             {
                 if (!Player.HasBuff("NasusQ", true)) SkillQ.Cast();
                 Player.IssueOrder(GameObjectOrder.AttackUnit, minionObj);
@@ -164,9 +161,9 @@ namespace Master
         private double GetBonusDmg(Obj_AI_Base target)
         {
             double DmgItem = 0;
-            if (Items.HasItem(Sheen) && (Items.CanUseItem(Sheen) || Player.HasBuff("sheen", true)) && Player.BaseAttackDamage * 1 > DmgItem) DmgItem = Player.BaseAttackDamage * 1;
+            if (Items.HasItem(Sheen) && (Items.CanUseItem(Sheen) || Player.HasBuff("sheen", true)) && Player.BaseAttackDamage > DmgItem) DmgItem = Player.BaseAttackDamage;
             if (Items.HasItem(Iceborn) && (Items.CanUseItem(Iceborn) || Player.HasBuff("itemfrozenfist", true)) && Player.BaseAttackDamage * 1.25 > DmgItem) DmgItem = Player.BaseAttackDamage * 1.25;
-            return SkillQ.GetDamage(target) + Player.CalcDamage(target, Damage.DamageType.Physical, DmgItem);
+            return SkillQ.GetDamage(target) + Player.GetAutoAttackDamage(target) + Player.CalcDamage(target, Damage.DamageType.Physical, DmgItem);
         }
     }
 }

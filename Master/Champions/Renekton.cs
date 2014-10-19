@@ -37,8 +37,7 @@ namespace Master
             Config.SubMenu("miscs").AddItem(new MenuItem(Name + "useAntiW", "Use W To Anti Gap Closer").SetValue(true));
             Config.SubMenu("miscs").AddItem(new MenuItem(Name + "useInterW", "Use W To Interrupt").SetValue(true));
             Config.SubMenu("miscs").AddItem(new MenuItem(Name + "calcelW", "Cancel W Animation").SetValue(true));
-            Config.SubMenu("miscs").AddItem(new MenuItem(Name + "skin", "Use Custom Skin").SetValue(true));
-            Config.SubMenu("miscs").AddItem(new MenuItem(Name + "skin1", "Skin Changer").SetValue(new Slider(6, 1, 7)));
+            Config.SubMenu("miscs").AddItem(new MenuItem(Name + "skin", "Skin Changer").SetValue(new Slider(6, 0, 6))).ValueChanged += SkinChanger;
             Config.SubMenu("miscs").AddItem(new MenuItem(Name + "packetCast", "Use Packet To Cast").SetValue(true));
 
             Config.AddSubMenu(new Menu("Ultimate", "useUlt"));
@@ -55,11 +54,6 @@ namespace Master
             Config.SubMenu("DrawSettings").AddItem(new MenuItem(Name + "DrawQ", "Q Range").SetValue(true));
             Config.SubMenu("DrawSettings").AddItem(new MenuItem(Name + "DrawE", "E Range").SetValue(true));
 
-            if (Config.Item(Name + "skin").GetValue<bool>())
-            {
-                Packet.S2C.UpdateModel.Encoded(new Packet.S2C.UpdateModel.Struct(Player.NetworkId, Config.Item(Name + "skin1").GetValue<Slider>().Value, Name)).Process();
-                lastSkinId = Config.Item(Name + "skin1").GetValue<Slider>().Value;
-            }
             Game.OnGameUpdate += OnGameUpdate;
             Drawing.OnDraw += OnDraw;
             AntiGapcloser.OnEnemyGapcloser += OnEnemyGapcloser;
@@ -70,8 +64,6 @@ namespace Master
 
         private void OnGameUpdate(EventArgs args)
         {
-            IReady = (IData != null && IData.Slot != SpellSlot.Unknown && IData.State == SpellState.Ready);
-            Orbwalker.SetAttack(true);
             if (Player.IsDead) return;
             var target = SimpleTs.GetTarget(1500, SimpleTs.DamageType.Physical);
             if (Orbwalker.ActiveMode != Orbwalking.OrbwalkingMode.Mixed && targetObj != null)
@@ -100,11 +92,6 @@ namespace Master
                     break;
             }
             if (Config.Item(Name + "useR").GetValue<bool>()) AutoUltimate();
-            if (Config.Item(Name + "skin").GetValue<bool>() && Config.Item(Name + "skin1").GetValue<Slider>().Value != lastSkinId)
-            {
-                Packet.S2C.UpdateModel.Encoded(new Packet.S2C.UpdateModel.Struct(Player.NetworkId, Config.Item(Name + "skin1").GetValue<Slider>().Value, Name)).Process();
-                lastSkinId = Config.Item(Name + "skin1").GetValue<Slider>().Value;
-            }
         }
 
         private void OnDraw(EventArgs args)

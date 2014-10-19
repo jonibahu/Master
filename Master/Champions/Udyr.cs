@@ -43,8 +43,6 @@ namespace Master
             Config.AddSubMenu(new Menu("Misc", "miscs"));
             Config.SubMenu("miscs").AddItem(new MenuItem(Name + "useAntiE", "Use E To Anti Gap Closer").SetValue(true));
             Config.SubMenu("miscs").AddItem(new MenuItem(Name + "useInterE", "Use E To Interrupt").SetValue(true));
-            //Config.SubMenu("miscs").AddItem(new MenuItem(Name + "skin", "Use Custom Skin").SetValue(true));
-            //Config.SubMenu("miscs").AddItem(new MenuItem(Name + "skin1", "Skin Changer").SetValue(new Slider(3, 1, 4)));
 
             Config.AddSubMenu(new Menu("Lane/Jungle Clear", "LaneJungClear"));
             Config.SubMenu("LaneJungClear").AddItem(new MenuItem(Name + "useClearQ", "Use Q").SetValue(true));
@@ -52,11 +50,6 @@ namespace Master
             Config.SubMenu("LaneJungClear").AddItem(new MenuItem(Name + "useClearE", "Use E").SetValue(true));
             Config.SubMenu("LaneJungClear").AddItem(new MenuItem(Name + "useClearR", "Use R").SetValue(true));
 
-            //if (Config.Item(Name + "skin").GetValue<bool>())
-            //{
-            //    Packet.S2C.UpdateModel.Encoded(new Packet.S2C.UpdateModel.Struct(Player.NetworkId, Config.Item(Name + "skin1").GetValue<Slider>().Value, Name)).Process();
-            //    lastSkinId = Config.Item(Name + "skin1").GetValue<Slider>().Value;
-            //}
             Game.OnGameUpdate += OnGameUpdate;
             AntiGapcloser.OnEnemyGapcloser += OnEnemyGapcloser;
             Interrupter.OnPossibleToInterrupt += OnPossibleToInterrupt;
@@ -68,7 +61,6 @@ namespace Master
 
         private void OnGameUpdate(EventArgs args)
         {
-            IReady = (IData != null && IData.Slot != SpellSlot.Unknown && IData.State == SpellState.Ready);
             if (Player.IsDead) return;
             var target = SimpleTs.GetTarget(1500, (CurStance == Stance.Tiger) ? SimpleTs.DamageType.Physical : SimpleTs.DamageType.Magical);
             if (Orbwalker.ActiveMode != Orbwalking.OrbwalkingMode.Mixed && targetObj != null)
@@ -90,11 +82,6 @@ namespace Master
             else if (Orbwalker.ActiveMode == Orbwalking.OrbwalkingMode.LaneClear) LaneJungClear();
             if (Config.Item(Name + "stunActive").GetValue<KeyBind>().Active) StunCycle();
             if (Config.Item(Name + "fleeActive").GetValue<KeyBind>().Active) Flee();
-            //if (Config.Item(Name + "skin").GetValue<bool>() && Config.Item(Name + "skin1").GetValue<Slider>().Value != lastSkinId)
-            //{
-            //    Packet.S2C.UpdateModel.Encoded(new Packet.S2C.UpdateModel.Struct(Player.NetworkId, Config.Item(Name + "skin1").GetValue<Slider>().Value, Name)).Process();
-            //    lastSkinId = Config.Item(Name + "skin1").GetValue<Slider>().Value;
-            //}
         }
 
         private void OnEnemyGapcloser(ActiveGapcloser gapcloser)
@@ -235,15 +222,15 @@ namespace Master
             if (SkillE.IsReady()) SkillE.Cast();
             if (PData != null && PData.Count < 3)
             {
-                if ((manaQ < manaW || manaQ < manaR) && SkillQ.IsReady())
+                if ((manaQ < manaW || manaQ < manaR || (manaQ == manaW && manaQ < manaR) || (manaQ == manaR && manaQ < manaW)) && SkillQ.IsReady())
                 {
                     SkillQ.Cast();
                 }
-                else if ((manaW < manaQ || manaW < manaR) && SkillW.IsReady())
+                else if ((manaW < manaQ || manaW < manaR || (manaW == manaQ && manaW < manaR) || (manaW == manaR && manaW < manaQ)) && SkillW.IsReady())
                 {
                     SkillW.Cast();
                 }
-                else if ((manaR < manaQ || manaR < manaW) && SkillR.IsReady()) SkillR.Cast();
+                else if ((manaR < manaQ || manaR < manaW || (manaR == manaQ && manaR < manaW) || (manaR == manaW && manaR < manaQ)) && SkillR.IsReady()) SkillR.Cast();
             }
         }
 
