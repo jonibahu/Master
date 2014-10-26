@@ -54,24 +54,31 @@
   </ItemGroup>
   <ItemGroup>
     <Reference Include="LeagueSharp">
-      <HintPath>D:\LeagueSharp\System\LeagueSharp.dll</HintPath>
+      <HintPath>D:\LeagueSharp\\System\LeagueSharp.dll</HintPath>
     </Reference>
     <Reference Include="LeagueSharp.Common">
-      <HintPath>D:\LeagueSharp\System\LeagueSharp.Common.dll</HintPath>
+      <HintPath>D:\LeagueSharp\\System\LeagueSharp.Common.dll</HintPath>
+    </Reference>
+    <Reference Include="LX-Orbwalker">
+      <HintPath>D:\LeagueSharp\\System\LX-Orbwalker.dll</HintPath>
     </Reference>
     <Reference Include="SharpDX">
-      <HintPath>D:\LeagueSharp\System\SharpDX.dll</HintPath>
+      <HintPath>D:\LeagueSharp\\System\SharpDX.dll</HintPath>
     </Reference>
     <Reference Include="SharpDX.Direct3D9">
-      <HintPath>D:\LeagueSharp\System\SharpDX.Direct3D9.dll</HintPath>
+      <HintPath>D:\LeagueSharp\\System\SharpDX.Direct3D9.dll</HintPath>
     </Reference>
     <Reference Include="System" />
     <Reference Include="System.Drawing" />
   </ItemGroup>
   <ItemGroup>
     <Compile Include="Champions\DrMundo.cs" />
+    <Compile Include="Champions\Garen.cs" />
+    <Compile Include="Champions\JarvanIV.cs" />
+    <Compile Include="Champions\Jax.cs" />
     <Compile Include="Champions\LeeSin.cs" />
     <Compile Include="Champions\Nasus.cs" />
+    <Compile Include="Champions\Rammus.cs" />
     <Compile Include="Champions\Renekton.cs" />
     <Compile Include="Champions\Riven.cs" />
     <Compile Include="Champions\Shen.cs" />
@@ -98,7 +105,6 @@
       <Install>false</Install>
     </BootstrapperPackage>
   </ItemGroup>
-  <ItemGroup />
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
   <!-- To modify your build process, add your task inside one of the targets below and uncomment it. 
        Other similar extension points exist, see Microsoft.Common.targets.

@@ -3,12 +3,13 @@ using System.Linq;
 
 using LeagueSharp;
 using LeagueSharp.Common;
+using LX_Orbwalker;
 
 namespace Master
 {
     class Udyr : Program
     {
-        private const String Version = "1.0.0";
+        private const String Version = "1.0.1";
         private enum Stance
         {
             Tiger,
@@ -30,7 +31,6 @@ namespace Master
 
             Config.AddSubMenu(new Menu("Key Bindings", "KeyBindings"));
             Config.SubMenu("KeyBindings").AddItem(new MenuItem(Name + "stunActive", "Stun Cycle").SetValue(new KeyBind("Z".ToCharArray()[0], KeyBindType.Press)));
-            Config.SubMenu("KeyBindings").AddItem(new MenuItem(Name + "fleeActive", "Flee").SetValue(new KeyBind("C".ToCharArray()[0], KeyBindType.Press)));
 
             Config.AddSubMenu(new Menu("Combo/Harass", "csettings"));
             Config.SubMenu("csettings").AddItem(new MenuItem(Name + "qusage", "Use Q").SetValue(true));
@@ -40,15 +40,16 @@ namespace Master
             Config.SubMenu("csettings").AddItem(new MenuItem(Name + "ignite", "Auto Ignite If Killable").SetValue(true));
             Config.SubMenu("csettings").AddItem(new MenuItem(Name + "iusage", "Use Item").SetValue(true));
 
-            Config.AddSubMenu(new Menu("Misc", "miscs"));
-            Config.SubMenu("miscs").AddItem(new MenuItem(Name + "useAntiE", "Use E To Anti Gap Closer").SetValue(true));
-            Config.SubMenu("miscs").AddItem(new MenuItem(Name + "useInterE", "Use E To Interrupt").SetValue(true));
-
             Config.AddSubMenu(new Menu("Lane/Jungle Clear", "LaneJungClear"));
             Config.SubMenu("LaneJungClear").AddItem(new MenuItem(Name + "useClearQ", "Use Q").SetValue(true));
             Config.SubMenu("LaneJungClear").AddItem(new MenuItem(Name + "useClearW", "Use W").SetValue(true));
             Config.SubMenu("LaneJungClear").AddItem(new MenuItem(Name + "useClearE", "Use E").SetValue(true));
             Config.SubMenu("LaneJungClear").AddItem(new MenuItem(Name + "useClearR", "Use R").SetValue(true));
+
+            Config.AddSubMenu(new Menu("Misc", "miscs"));
+            Config.SubMenu("miscs").AddItem(new MenuItem(Name + "useAntiE", "Use E To Anti Gap Closer").SetValue(true));
+            Config.SubMenu("miscs").AddItem(new MenuItem(Name + "useInterE", "Use E To Interrupt").SetValue(true));
+            Config.SubMenu("miscs").AddItem(new MenuItem(Name + "surviveW", "Try Use W To Survive").SetValue(true));
 
             Game.OnGameUpdate += OnGameUpdate;
             AntiGapcloser.OnEnemyGapcloser += OnEnemyGapcloser;
@@ -62,26 +63,21 @@ namespace Master
         private void OnGameUpdate(EventArgs args)
         {
             if (Player.IsDead) return;
-            var target = SimpleTs.GetTarget(1500, (CurStance == Stance.Tiger) ? SimpleTs.DamageType.Physical : SimpleTs.DamageType.Magical);
-            if (Orbwalker.ActiveMode != Orbwalking.OrbwalkingMode.Mixed && targetObj != null)
-            {
-                targetObj = null;
-            }
-            else if (Orbwalker.ActiveMode == Orbwalking.OrbwalkingMode.Combo)
-            {
-                targetObj = target;
-            }
-            else if ((target.IsValidTarget() && targetObj == null) || Orbwalker.ActiveMode == Orbwalking.OrbwalkingMode.Mixed)
-            {
-                targetObj = target;
-            }
-            if (Orbwalker.ActiveMode == Orbwalking.OrbwalkingMode.Combo || Orbwalker.ActiveMode == Orbwalking.OrbwalkingMode.Mixed)
+            if (LXOrbwalker.CurrentMode == LXOrbwalker.Mode.Combo || LXOrbwalker.CurrentMode == LXOrbwalker.Mode.Harass)
             {
                 NormalCombo();
             }
-            else if (Orbwalker.ActiveMode == Orbwalking.OrbwalkingMode.LaneClear) LaneJungClear();
-            if (Config.Item(Name + "stunActive").GetValue<KeyBind>().Active) StunCycle();
-            if (Config.Item(Name + "fleeActive").GetValue<KeyBind>().Active) Flee();
+            else if (LXOrbwalker.CurrentMode == LXOrbwalker.Mode.LaneClear || LXOrbwalker.CurrentMode == LXOrbwalker.Mode.LaneFreeze)
+            {
+                LaneJungClear();
+            }
+            else if (LXOrbwalker.CurrentMode == LXOrbwalker.Mode.Flee) Flee();
+            if (Config.Item(Name + "stunActive").GetValue<KeyBind>().Active)
+            {
+                StunCycle();
+                LXOrbwalker.CustomOrbwalkMode = true;
+            }
+            else LXOrbwalker.CustomOrbwalkMode = false;
         }
 
         private void OnEnemyGapcloser(ActiveGapcloser gapcloser)
@@ -104,7 +100,7 @@ namespace Master
             }
         }
 
-        void OnProcessSpellCast(Obj_AI_Base sender, GameObjectProcessSpellCastEventArgs args)
+        private void OnProcessSpellCast(Obj_AI_Base sender, GameObjectProcessSpellCastEventArgs args)
         {
             if (!sender.IsMe) return;
             if (args.SData.Name == SkillQ.Instance.Name)
@@ -127,19 +123,40 @@ namespace Master
                 CurStance = Stance.Phoenix;
                 AACount = 0;
             }
-            if (Orbwalker.ActiveMode == Orbwalking.OrbwalkingMode.Combo || Orbwalker.ActiveMode == Orbwalking.OrbwalkingMode.Mixed || Orbwalker.ActiveMode == Orbwalking.OrbwalkingMode.LaneClear)
+            if (LXOrbwalker.CurrentMode != LXOrbwalker.Mode.Flee && LXOrbwalker.CurrentMode != LXOrbwalker.Mode.Lasthit && LXOrbwalker.CurrentMode != LXOrbwalker.Mode.None)
             {
                 if (args.SData.Name == Name + "BasicAttack" && (args.Target == targetObj || args.Target == minionObj) && (CurStance == Stance.Tiger || CurStance == Stance.Phoenix)) AACount += 1;
             }
         }
 
-        void OnCreate(GameObject sender, EventArgs args)
+        private void OnCreate(GameObject sender, EventArgs args)
         {
             if (Player.Distance(sender.Position) <= 70 && (sender.Name == "Udyr_PhoenixBreath_cas.troy" || sender.Name == "Udyr_Spirit_Phoenix_Breath_cas.troy")) PhoenixActive = true;
             if (Player.Distance(sender.Position) <= 450 && (sender.Name == "udyr_tiger_claw_tar.troy" || sender.Name == "Udyr_Spirit_Tiger_Claw_tar.troy")) TigerActive = true;
+            if (sender is Obj_SpellMissile && sender.IsValid && Config.Item(Name + "surviveW").GetValue<bool>() && SkillW.IsReady())
+            {
+                var missle = (Obj_SpellMissile)sender;
+                var caster = missle.SpellCaster;
+                if (caster.IsEnemy)
+                {
+                    var ShieldBuff = new Int32[] { 60, 100, 140, 180, 220 }[SkillW.Level - 1] + 0.5 * Player.FlatMagicDamageMod;
+                    if (missle.SData.Name.Contains("BasicAttack"))
+                    {
+                        if (missle.Target.IsMe && Player.Health <= caster.GetAutoAttackDamage(Player, true) && Player.Health + ShieldBuff > caster.GetAutoAttackDamage(Player, true)) SkillW.Cast();
+                    }
+                    else if (missle.Target.IsMe || missle.EndPosition.Distance(Player.Position) <= 130)
+                    {
+                        if (missle.SData.Name == "summonerdot")
+                        {
+                            if (Player.Health <= (caster as Obj_AI_Hero).GetSummonerSpellDamage(Player, Damage.SummonerSpell.Ignite) && Player.Health + ShieldBuff > (caster as Obj_AI_Hero).GetSummonerSpellDamage(Player, Damage.SummonerSpell.Ignite)) SkillW.Cast();
+                        }
+                        else if (Player.Health <= caster.GetDamageSpell(Player, missle.SData.Name).CalculatedDamage && Player.Health + ShieldBuff > caster.GetDamageSpell(Player, missle.SData.Name).CalculatedDamage) SkillW.Cast();
+                    }
+                }
+            }
         }
 
-        void OnDelete(GameObject sender, EventArgs args)
+        private void OnDelete(GameObject sender, EventArgs args)
         {
             if (Player.Distance(sender.Position) <= 70 && (sender.Name == "Udyr_PhoenixBreath_cas.troy" || sender.Name == "Udyr_Spirit_Phoenix_Breath_cas.troy")) PhoenixActive = false;
             if (Player.Distance(sender.Position) <= 450 && (sender.Name == "udyr_tiger_claw_tar.troy" || sender.Name == "Udyr_Spirit_Tiger_Claw_tar.troy")) TigerActive = false;
@@ -177,8 +194,8 @@ namespace Master
         private void LaneJungClear()
         {
             minionObj = MinionManager.GetMinions(Player.Position, SkillE.Range, MinionTypes.All, MinionTeam.NotAlly).FirstOrDefault();
+            LXOrbwalker.ForcedTarget = minionObj;
             if (minionObj == null) return;
-            Orbwalker.ForceTarget(minionObj);
             if (Config.Item(Name + "useClearE").GetValue<bool>() && SkillE.IsReady() && !minionObj.HasBuff("udyrbearstuncheck", true)) SkillE.Cast();
             if (minionObj.IsValidTarget(400) && (!Config.Item(Name + "useClearE").GetValue<bool>() || (Config.Item(Name + "useClearE").GetValue<bool>() && (SkillE.Level == 0 || (SkillE.Level >= 1 && minionObj.HasBuff("udyrbearstuncheck", true))))))
             {
@@ -203,22 +220,12 @@ namespace Master
             }
         }
 
-        private void StunCycle()
-        {
-            Orbwalk();
-            Obj_AI_Hero targetClosest = ObjectManager.Get<Obj_AI_Hero>().Where(i => i.IsValidTarget(SkillE.Range) && !i.HasBuff("udyrbearstuncheck", true)).OrderBy(i => i.Distance(Player)).FirstOrDefault();
-            if (targetClosest == null) return;
-            if (SkillE.IsReady()) SkillE.Cast();
-            Player.IssueOrder(GameObjectOrder.AttackUnit, targetClosest);
-        }
-
         private void Flee()
         {
             var manaQ = SkillQ.Instance.ManaCost;
             var manaW = SkillW.Instance.ManaCost;
             var manaR = SkillR.Instance.ManaCost;
             var PData = Player.Buffs.FirstOrDefault(i => i.Name == "udyrmonkeyagilitybuff");
-            Player.IssueOrder(GameObjectOrder.MoveTo, Game.CursorPos);
             if (SkillE.IsReady()) SkillE.Cast();
             if (PData != null && PData.Count < 3)
             {
@@ -232,6 +239,14 @@ namespace Master
                 }
                 else if ((manaR < manaQ || manaR < manaW || (manaR == manaQ && manaR < manaW) || (manaR == manaW && manaR < manaQ)) && SkillR.IsReady()) SkillR.Cast();
             }
+        }
+
+        private void StunCycle()
+        {
+            var targetClosest = ObjectManager.Get<Obj_AI_Hero>().Where(i => i.IsValidTarget(SkillE.Range) && !i.HasBuff("udyrbearstuncheck", true)).OrderBy(i => i.Distance(Player)).FirstOrDefault();
+            LXOrbwalker.Orbwalk(Game.CursorPos, targetClosest);
+            if (targetClosest == null) return;
+            if (SkillE.IsReady()) SkillE.Cast();
         }
 
         private void UseItem(Obj_AI_Hero target)
