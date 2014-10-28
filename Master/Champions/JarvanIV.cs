@@ -94,8 +94,8 @@ namespace Master
             }
             if (Config.Item(Name + "EQFlash").GetValue<KeyBind>().Active)
             {
-                ComboEQFlash();
                 LXOrbwalker.CustomOrbwalkMode = true;
+                ComboEQFlash();
             }
             else LXOrbwalker.CustomOrbwalkMode = false;
             if (Config.Item(Name + "killstealQ").GetValue<bool>()) KillSteal();

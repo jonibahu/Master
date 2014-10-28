@@ -73,8 +73,8 @@ namespace Master
             else if (LXOrbwalker.CurrentMode == LXOrbwalker.Mode.Flee) Flee();
             if (Config.Item(Name + "stunActive").GetValue<KeyBind>().Active)
             {
-                StunCycle();
                 LXOrbwalker.CustomOrbwalkMode = true;
+                StunCycle();
             }
             else LXOrbwalker.CustomOrbwalkMode = false;
         }
