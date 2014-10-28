@@ -37,6 +37,7 @@ namespace Master
             Config.SubMenu("useUlt").AddItem(new MenuItem(Name + "autouseR", "Use R If Hp Under").SetValue(new Slider(30, 1)));
 
             Config.AddSubMenu(new Menu("Misc", "miscs"));
+            Config.SubMenu("miscs").AddItem(new MenuItem(Name + "lasthitQ", "Use Q To Last Hit").SetValue(true));
             Config.SubMenu("miscs").AddItem(new MenuItem(Name + "killstealE", "Auto E To Kill Steal").SetValue(true));
             Config.SubMenu("miscs").AddItem(new MenuItem(Name + "SkinID", "Skin Changer").SetValue(new Slider(5, 0, 5))).ValueChanged += SkinChanger;
             Config.SubMenu("miscs").AddItem(new MenuItem(Name + "packetCast", "Use Packet To Cast").SetValue(true));
@@ -63,7 +64,7 @@ namespace Master
             {
                 LaneJungClear();
             }
-            else if (LXOrbwalker.CurrentMode == LXOrbwalker.Mode.Lasthit) LastHit();
+            else if (LXOrbwalker.CurrentMode == LXOrbwalker.Mode.Lasthit && Config.Item(Name + "lasthitQ").GetValue<bool>()) LastHit();
             if (Config.Item(Name + "killstealE").GetValue<bool>()) KillSteal();
         }
 
@@ -105,12 +106,8 @@ namespace Master
             if (Config.Item(Name + "eusage").GetValue<bool>() && SkillE.IsReady() && SkillE.InRange(targetObj.Position)) SkillE.Cast(targetObj.Position + Vector3.Normalize(targetObj.Position - Player.Position) * 100, PacketCast);
             if (Config.Item(Name + "qusage").GetValue<bool>() && SkillQ.InRange(targetObj.Position))
             {
-                var DmgWhenQCd = Math.Floor(SkillQ.Instance.Cooldown / (1 / Player.AttackSpeedMod)) * Player.GetAutoAttackDamage(targetObj);
-                if ((targetObj.Health <= GetBonusDmg(targetObj) || targetObj.Health > DmgWhenQCd + GetBonusDmg(targetObj)) && (SkillQ.IsReady() || Player.HasBuff("NasusQ", true)))
-                {
-                    if (!Player.HasBuff("NasusQ", true)) SkillQ.Cast();
-                    Player.IssueOrder(GameObjectOrder.AttackUnit, targetObj);
-                }
+                var DmgAA = Player.GetAutoAttackDamage(targetObj) * Math.Floor(SkillQ.Instance.Cooldown / (1 / (Player.AttackDelay * 0.638)));
+                if ((targetObj.Health <= GetBonusDmg(targetObj) || targetObj.Health > DmgAA + GetBonusDmg(targetObj)) && SkillQ.IsReady()) SkillQ.Cast();
             }
             if (Config.Item(Name + "iusage").GetValue<bool>() && Items.CanUseItem(Rand) && Utility.CountEnemysInRange(450) >= 1) Items.UseItem(Rand);
             if (Config.Item(Name + "ignite").GetValue<bool>()) CastIgnite(targetObj);
@@ -121,16 +118,16 @@ namespace Master
             var minionObj = (Obj_AI_Base)ObjectManager.Get<Obj_AI_Turret>().FirstOrDefault(i => i.IsValidTarget(SkillQ.Range) && i.Health <= GetBonusDmg(i));
             if (minionObj == null) minionObj = MinionManager.GetMinions(Player.Position, SkillE.Range, MinionTypes.All, MinionTeam.NotAlly).FirstOrDefault();
             if (minionObj == null) return;
-            if (Config.Item(Name + "useClearE").GetValue<bool>() && SkillE.IsReady() && minionObj is Obj_AI_Minion) SkillE.Cast(minionObj.Position, PacketCast);
             if (Config.Item(Name + "useClearQ").GetValue<bool>() && SkillQ.InRange(minionObj.Position))
             {
-                var DmgWhenQCd = Math.Floor(SkillQ.Instance.Cooldown / (1 / Player.AttackSpeedMod)) * Player.GetAutoAttackDamage(minionObj);
-                if ((minionObj.Health <= GetBonusDmg(minionObj) || minionObj.Health > DmgWhenQCd + GetBonusDmg(minionObj)) && (SkillQ.IsReady() || Player.HasBuff("NasusQ", true)))
+                var DmgAA = Player.GetAutoAttackDamage(minionObj) * Math.Floor(SkillQ.Instance.Cooldown / (1 / (Player.AttackDelay * 0.638)));
+                if ((minionObj.Health <= GetBonusDmg(minionObj) || minionObj.Health > DmgAA + GetBonusDmg(minionObj)) && (SkillQ.IsReady() || Player.HasBuff("NasusQ", true)))
                 {
                     if (!Player.HasBuff("NasusQ", true)) SkillQ.Cast();
-                    Player.IssueOrder(GameObjectOrder.AttackUnit, minionObj);
+                    if (Player.HasBuff("NasusQ", true)) Player.IssueOrder(GameObjectOrder.AttackUnit, minionObj);
                 }
             }
+            if (Config.Item(Name + "useClearE").GetValue<bool>() && SkillE.IsReady() && minionObj is Obj_AI_Minion) SkillE.Cast(minionObj.Position, PacketCast);
         }
 
         private void LastHit()
@@ -141,13 +138,13 @@ namespace Master
             if (SkillQ.IsReady() || Player.HasBuff("NasusQ", true))
             {
                 if (!Player.HasBuff("NasusQ", true)) SkillQ.Cast();
-                Player.IssueOrder(GameObjectOrder.AttackUnit, minionObj);
+                if (Player.HasBuff("NasusQ", true)) Player.IssueOrder(GameObjectOrder.AttackUnit, minionObj);
             }
         }
 
         private void KillSteal()
         {
-            var target = ObjectManager.Get<Obj_AI_Hero>().FirstOrDefault(i => i.IsValidTarget(SkillE.Range) && SkillE.IsKillable(i));
+            var target = ObjectManager.Get<Obj_AI_Hero>().FirstOrDefault(i => i.IsValidTarget(SkillE.Range) && SkillE.IsKillable(i) && i != targetObj);
             if (target != null && SkillE.IsReady()) SkillE.Cast(target.Position, PacketCast);
         }
 

@@ -23,8 +23,7 @@ namespace Master
             SkillR = new Spell(SpellSlot.R, 650);
             SkillQ.SetSkillshot(SkillQ.Instance.SData.SpellCastTime, SkillQ.Instance.SData.LineWidth, SkillQ.Instance.SData.MissileSpeed, false, SkillshotType.SkillshotLine);
 
-            Config.AddSubMenu(new Menu("Key Bindings", "KeyBindings"));
-            Config.SubMenu("KeyBindings").AddItem(new MenuItem(Name + "EQFlash", "Combo EQ Flash").SetValue(new KeyBind("X".ToCharArray()[0], KeyBindType.Press)));
+            Config.SubMenu("Orbwalker").SubMenu("lxOrbwalker_Modes").AddItem(new MenuItem(Name + "EQFlash", "Combo EQ Flash").SetValue(new KeyBind("X".ToCharArray()[0], KeyBindType.Press)));
 
             Config.AddSubMenu(new Menu("Combo", "csettings"));
             Config.SubMenu("csettings").AddItem(new MenuItem(Name + "qusage", "Use Q").SetValue(true));
@@ -121,11 +120,7 @@ namespace Master
         private void OnCreate(GameObject sender, EventArgs args)
         {
             if (sender.Name == "JarvanDemacianStandard_buf_green.troy") flagPos = sender.Position;
-            if (sender.Name == "JarvanCataclysm_tar.troy")
-            {
-                wallObj = (Obj_AI_Base)sender;
-                if (wallObj != null) Game.PrintChat(sender.Name + "b");
-            }
+            if (sender.Name == "JarvanCataclysm_tar.troy") wallObj = (Obj_AI_Base)sender;
             if (sender is Obj_SpellMissile && sender.IsValid && Config.Item(Name + "surviveW").GetValue<bool>() && SkillW.IsReady())
             {
                 var missle = (Obj_SpellMissile)sender;
@@ -152,11 +147,7 @@ namespace Master
         private void OnDelete(GameObject sender, EventArgs args)
         {
             if (sender.Name == "JarvanDemacianStandard_buf_green.troy") flagPos = default(Vector3);
-            if (sender.Name == "JarvanCataclysm_tar.troy")
-            {
-                wallObj = null;
-                Game.PrintChat(sender.Name + "d");
-            }
+            if (sender.Name == "JarvanCataclysm_tar.troy") wallObj = null;
         }
 
         private void NormalCombo()
@@ -186,7 +177,7 @@ namespace Master
                         if (SkillR.InRange(targetObj.Position) && SkillR.IsKillable(targetObj)) SkillR.CastOnUnit(targetObj, PacketCast);
                         break;
                     case 1:
-                        var UltiObj = ObjectManager.Get<Obj_AI_Hero>().FirstOrDefault(i => i.IsValidTarget(SkillR.Range) && Utility.CountEnemysInRange(325, i.Position) >= Config.Item(Name + "rmulti").GetValue<Slider>().Value);
+                        var UltiObj = ObjectManager.Get<Obj_AI_Hero>().FirstOrDefault(i => i.IsValidTarget(SkillR.Range) && Utility.CountEnemysInRange(i.Position, 325) >= Config.Item(Name + "rmulti").GetValue<Slider>().Value);
                         if (UltiObj != null) SkillR.CastOnUnit(UltiObj, PacketCast);
                         break;
                 }
@@ -248,7 +239,7 @@ namespace Master
 
         private void KillSteal()
         {
-            var target = ObjectManager.Get<Obj_AI_Hero>().FirstOrDefault(i => i.IsValidTarget(SkillQ.Range) && SkillQ.IsKillable(i));
+            var target = ObjectManager.Get<Obj_AI_Hero>().FirstOrDefault(i => i.IsValidTarget(SkillQ.Range) && SkillQ.IsKillable(i) && i != targetObj);
             if (target != null && SkillQ.IsReady()) SkillQ.Cast(target.Position, PacketCast);
         }
 

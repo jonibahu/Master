@@ -13,6 +13,7 @@ namespace Master
     {
         private const String Version = "1.0.3";
         private Vector3 DashBackPos = default(Vector3);
+        private bool ECasted = false;
 
         public Renekton()
         {
@@ -101,18 +102,18 @@ namespace Master
             if (gapcloser.Sender.IsValidTarget(SkillE.Range) && (SkillW.IsReady() || Player.HasBuff("RenektonPreExecute")))
             {
                 if (!Player.HasBuff("RenektonPreExecute")) SkillW.Cast();
-                Player.IssueOrder(GameObjectOrder.AttackUnit, gapcloser.Sender);
+                if (Player.HasBuff("RenektonPreExecute")) Player.IssueOrder(GameObjectOrder.AttackUnit, gapcloser.Sender);
             }
         }
 
         private void OnPossibleToInterrupt(Obj_AI_Base unit, InterruptableSpell spell)
         {
             if (!Config.Item(Name + "useInterW").GetValue<bool>()) return;
-            if (SkillW.IsReady() && SkillE.IsReady() && !SkillW.InRange(unit.Position) && unit.IsValidTarget(SkillE.Range)) SkillE.Cast(unit.Position + Vector3.Normalize(unit.Position - Player.Position) * 100, PacketCast);
+            if (SkillW.IsReady() && SkillE.IsReady() && !SkillW.InRange(unit.Position) && unit.IsValidTarget(SkillE.Range)) SkillE.Cast(unit.Position + Vector3.Normalize(unit.Position - Player.Position) * 200, PacketCast);
             if (unit.IsValidTarget(SkillW.Range) && (SkillW.IsReady() || Player.HasBuff("RenektonPreExecute")))
             {
                 if (!Player.HasBuff("RenektonPreExecute")) SkillW.Cast();
-                Player.IssueOrder(GameObjectOrder.AttackUnit, unit);
+                if (Player.HasBuff("RenektonPreExecute")) Player.IssueOrder(GameObjectOrder.AttackUnit, unit);
             }
         }
 
@@ -124,7 +125,12 @@ namespace Master
                 if (Items.CanUseItem(Tiamat)) Items.UseItem(Tiamat);
                 if (Items.CanUseItem(Hydra)) Items.UseItem(Hydra);
             }
-            if (LXOrbwalker.CurrentMode == LXOrbwalker.Mode.Harass && args.SData.Name == "RenektonSliceAndDice" && DashBackPos == default(Vector3) && Player.IsDashing()) DashBackPos = Player.Position;
+            if (args.SData.Name == "RenektonSliceAndDice")
+            {
+                ECasted = true;
+                Utility.DelayAction.Add(400, () => ECasted = false);
+                if (LXOrbwalker.CurrentMode == LXOrbwalker.Mode.Harass && DashBackPos == default(Vector3) && ECasted) DashBackPos = Player.Position + (Player.Position - targetObj.Position) * SkillE.Range;
+            }
         }
 
         private void OnCreate(GameObject sender, EventArgs args)
@@ -154,29 +160,21 @@ namespace Master
         private void NormalCombo()
         {
             if (targetObj == null) return;
-            if (Config.Item(Name + "eusage").GetValue<bool>() && SkillE.IsReady() && SkillE.Instance.Name == "RenektonSliceAndDice" && SkillE.InRange(targetObj.Position)) SkillE.Cast(targetObj.Position + Vector3.Normalize(targetObj.Position - Player.Position) * 100, PacketCast);
-            if (Config.Item(Name + "wusage").GetValue<bool>() && SkillW.InRange(targetObj.Position) && !Player.IsDashing() && (SkillW.IsReady() || Player.HasBuff("RenektonPreExecute")))
-            {
-                if (!Player.HasBuff("RenektonPreExecute")) SkillW.Cast();
-                Player.IssueOrder(GameObjectOrder.AttackUnit, targetObj);
-            }
-            if (Config.Item(Name + "qusage").GetValue<bool>() && SkillQ.IsReady() && SkillQ.InRange(targetObj.Position) && !Player.IsDashing()) SkillQ.Cast();
-            if (Config.Item(Name + "eusage").GetValue<bool>() && SkillE.IsReady() && SkillE.Instance.Name != "RenektonSliceAndDice" && !Player.IsDashing() && SkillE.InRange(targetObj.Position)) SkillE.Cast(targetObj.Position + Vector3.Normalize(targetObj.Position - Player.Position) * 100, PacketCast);
-            if (Config.Item(Name + "iusage").GetValue<bool>() && !Player.IsDashing()) UseItem(targetObj);
+            if (Config.Item(Name + "eusage").GetValue<bool>() && SkillE.IsReady() && SkillE.Instance.Name == "RenektonSliceAndDice" && SkillE.InRange(targetObj.Position)) SkillE.Cast(targetObj.Position + Vector3.Normalize(targetObj.Position - Player.Position) * 200, PacketCast);
+            if (Config.Item(Name + "wusage").GetValue<bool>() && SkillW.InRange(targetObj.Position) && !ECasted && SkillW.IsReady()) SkillW.Cast();
+            if (Config.Item(Name + "qusage").GetValue<bool>() && SkillQ.IsReady() && SkillQ.InRange(targetObj.Position) && !ECasted) SkillQ.Cast();
+            if (Config.Item(Name + "eusage").GetValue<bool>() && SkillE.IsReady() && SkillE.Instance.Name != "RenektonSliceAndDice" && !ECasted && SkillE.InRange(targetObj.Position)) SkillE.Cast(targetObj.Position + Vector3.Normalize(targetObj.Position - Player.Position) * 200, PacketCast);
+            if (Config.Item(Name + "iusage").GetValue<bool>() && !ECasted) UseItem(targetObj);
             if (Config.Item(Name + "ignite").GetValue<bool>()) CastIgnite(targetObj);
         }
 
         private void Harass()
         {
             if (targetObj == null || Player.Health * 100 / Player.MaxHealth < Config.Item(Name + "harMode").GetValue<Slider>().Value) return;
-            if (SkillE.IsReady() && SkillE.Instance.Name == "RenektonSliceAndDice" && SkillE.InRange(targetObj.Position)) SkillE.Cast(targetObj.Position + Vector3.Normalize(targetObj.Position - Player.Position) * 100, PacketCast);
-            if (Config.Item(Name + "useHarW").GetValue<bool>() && SkillW.InRange(targetObj.Position) && !Player.IsDashing() && (SkillW.IsReady() || Player.HasBuff("RenektonPreExecute")))
-            {
-                if (!Player.HasBuff("RenektonPreExecute")) SkillW.Cast();
-                Player.IssueOrder(GameObjectOrder.AttackUnit, targetObj);
-            }
-            if (Config.Item(Name + "useHarQ").GetValue<bool>() && SkillQ.IsReady() && SkillQ.InRange(targetObj.Position) && !Player.IsDashing()) SkillQ.Cast();
-            if (SkillE.IsReady() && SkillE.Instance.Name != "RenektonSliceAndDice" && !Player.IsDashing()) SkillE.Cast(DashBackPos, PacketCast);
+            if (SkillE.IsReady() && SkillE.Instance.Name == "RenektonSliceAndDice" && SkillE.InRange(targetObj.Position)) SkillE.Cast(targetObj.Position + Vector3.Normalize(targetObj.Position - Player.Position) * 200, PacketCast);
+            if (Config.Item(Name + "useHarW").GetValue<bool>() && SkillW.InRange(targetObj.Position) && !ECasted && SkillW.IsReady()) SkillW.Cast();
+            if (Config.Item(Name + "useHarQ").GetValue<bool>() && SkillQ.IsReady() && SkillQ.InRange(targetObj.Position) && !ECasted) SkillQ.Cast();
+            if (SkillE.IsReady() && SkillE.Instance.Name != "RenektonSliceAndDice" && !ECasted) SkillE.Cast(DashBackPos, PacketCast);
             if (!SkillE.IsReady()) DashBackPos = default(Vector3);
         }
 
@@ -185,18 +183,10 @@ namespace Master
             var minionObj = MinionManager.GetMinions(Player.Position, SkillE.Range, MinionTypes.All, MinionTeam.NotAlly);
             if (minionObj.Count == 0) return;
             if (Config.Item(Name + "useClearE").GetValue<bool>() && SkillE.IsReady() && SkillE.Instance.Name == "RenektonSliceAndDice") SkillE.Cast(SkillE.GetLineFarmLocation(minionObj.ToList()).Position, PacketCast);
-            if (Config.Item(Name + "useClearQ").GetValue<bool>() && SkillQ.IsReady() && minionObj.Count(i => i.IsValidTarget(SkillQ.Range)) >= 2 && !Player.IsDashing()) SkillQ.Cast();
-            if (Config.Item(Name + "useClearW").GetValue<bool>() && !Player.IsDashing() && (SkillW.IsReady() || Player.HasBuff("RenektonPreExecute")))
-            {
-                var Obj = minionObj.FirstOrDefault(i => SkillW.InRange(i.Position) && (Player.Mana >= 50) ? SkillW.IsKillable(i, 1) : SkillW.IsKillable(i));
-                if (Obj != null)
-                {
-                    if (!Player.HasBuff("RenektonPreExecute")) SkillW.Cast();
-                    Player.IssueOrder(GameObjectOrder.AttackUnit, Obj);
-                }
-            }
-            if (Config.Item(Name + "useClearE").GetValue<bool>() && SkillE.IsReady() && SkillE.Instance.Name != "RenektonSliceAndDice" && !Player.IsDashing()) SkillE.Cast(SkillE.GetLineFarmLocation(minionObj.ToList()).Position, PacketCast);
-            if (Config.Item(Name + "useClearI").GetValue<bool>() && minionObj.Count(i => i.IsValidTarget(350)) >= 2 && !Player.IsDashing())
+            if (Config.Item(Name + "useClearQ").GetValue<bool>() && SkillQ.IsReady() && minionObj.Count(i => i.IsValidTarget(SkillQ.Range)) >= 2 && !ECasted) SkillQ.Cast();
+            if (Config.Item(Name + "useClearW").GetValue<bool>() && !ECasted && SkillW.IsReady() && minionObj.FirstOrDefault(i => SkillW.InRange(i.Position) && (Player.Mana >= 50) ? SkillW.IsKillable(i, 1) : SkillW.IsKillable(i)) != null) SkillW.Cast();
+            if (Config.Item(Name + "useClearE").GetValue<bool>() && SkillE.IsReady() && SkillE.Instance.Name != "RenektonSliceAndDice" && !ECasted) SkillE.Cast(SkillE.GetLineFarmLocation(minionObj.ToList()).Position, PacketCast);
+            if (Config.Item(Name + "useClearI").GetValue<bool>() && minionObj.Count(i => i.IsValidTarget(350)) >= 2 && !ECasted)
             {
                 if (Items.CanUseItem(Tiamat)) Items.UseItem(Tiamat);
                 if (Items.CanUseItem(Hydra)) Items.UseItem(Hydra);

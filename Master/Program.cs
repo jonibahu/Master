@@ -1,5 +1,4 @@
 ﻿using System;
-using System.Diagnostics;
 using System.Linq;
 using Color = System.Drawing.Color;
 
@@ -22,7 +21,6 @@ namespace Master
         public static String Name;
         public static Boolean PacketCast = false;
         public static InventorySlot Ward = null;
-        public static Stopwatch TimeTick;
 
         private static void Main(string[] args)
         {
@@ -33,6 +31,16 @@ namespace Master
         {
             Name = Player.ChampionName;
             Config = new Menu("Master Of " + Name, "Master_" + Name, true);
+
+            Config.AddSubMenu(new Menu("Target Selector", "TSSettings"));
+            Config.SubMenu("TSSettings").AddItem(new MenuItem("tsMode", "Mode").SetValue(new StringList(new[] { "Auto", "Most AD", "Most AP", "Less Attack", "Less Cast", "Low Hp", "Closest", "Near Mouse" })));
+            Config.SubMenu("TSSettings").AddItem(new MenuItem("tsFocus", "Forced Target").SetValue(true));
+            Config.SubMenu("TSSettings").AddItem(new MenuItem("tsDraw", "Draw Target").SetValue(true));
+            selectTarget = new TargetSelector(1500, TargetSelector.TargetingMode.AutoPriority);
+
+            var OWMenu = new Menu("Orbwalker", "Orbwalker");
+            LXOrbwalker.AddToMenu(OWMenu);
+            Config.AddSubMenu(OWMenu);
             try
             {
                 if (Activator.CreateInstance(null, "Master." + Name) != null)
@@ -45,34 +53,17 @@ namespace Master
                     FData = Player.SummonerSpellbook.GetSpell(Player.GetSpellSlot("summonerflash"));
                     SData = Player.SummonerSpellbook.GetSpell(Player.GetSpellSlot("summonersmite"));
                     IData = Player.SummonerSpellbook.GetSpell(Player.GetSpellSlot("summonerdot"));
-
-                    Config.AddSubMenu(new Menu("Target Selector", "TSSettings"));
-                    Config.SubMenu("TSSettings").AddItem(new MenuItem("tsMode", "Mode").SetValue(new StringList(new[] { "Auto", "Most AD", "Most AP", "Less Attack", "Less Cast", "Low Hp", "Closest", "Near Mouse" })));
-                    Config.SubMenu("TSSettings").AddItem(new MenuItem("tsFocus", "Forced Target").SetValue(true));
-                    Config.SubMenu("TSSettings").AddItem(new MenuItem("tsDraw", "Draw Target").SetValue(true));
-                    selectTarget = new TargetSelector(1500, TargetSelector.TargetingMode.AutoPriority);
-
-                    var OWMenu = new Menu("Orbwalker", "Orbwalker");
-                    LXOrbwalker.AddToMenu(OWMenu);
-                    Config.AddSubMenu(OWMenu);
-
-                    CustomEvents.Game.OnGameEnd += OnGameEnd;
                     Game.OnGameUpdate += OnGameUpdate;
                     Drawing.OnDraw += OnDraw;
                     Game.OnWndProc += OnWndProc;
-                    Config.AddToMainMenu();
                     SkinChanger(null, null);
                 }
             }
-            catch (Exception ex)
+            catch
             {
-                Game.PrintChat(ex.Message);
+                Game.PrintChat("[Master Series] => {0} Not Support !", Name);
             }
-        }
-
-        private static void OnGameEnd(EventArgs args)
-        {
-            if (TimeTick.IsRunning) TimeTick.Stop();
+            Config.AddToMainMenu();
         }
 
         private static void OnGameUpdate(EventArgs args)
@@ -144,12 +135,19 @@ namespace Master
             Utility.DelayAction.Add(35, () => Packet.S2C.UpdateModel.Encoded(new Packet.S2C.UpdateModel.Struct(Player.NetworkId, Config.Item(Name + "SkinID").GetValue<Slider>().Value, Name)).Process());
         }
 
-        public static bool CheckingCollision(Obj_AI_Hero target, Spell Skill)
+        public static bool CheckingCollision(Obj_AI_Hero target, Spell Skill, bool Smite = true)
         {
-            foreach (var col in MinionManager.GetMinions(Player.Position, Skill.Range, MinionTypes.All, MinionTeam.NotAlly))
+            foreach (var col in ObjectManager.Get<Obj_AI_Base>().Where(i => i.IsValidTarget(Skill.Range) && !(i is Obj_AI_Turret) && i != target))
             {
-                var Segment = Geometry.ProjectOn(col.Position.To2D(), Player.Position.To2D(), target.Position.To2D());
-                if (Segment.IsOnSegment && col.Distance(Segment.SegmentPoint) <= col.BoundingRadius + Skill.Width && CastSmite(col)) return true;
+                var Segment = Geometry.ProjectOn(Skill.GetPrediction(col).CastPosition.To2D(), Player.Position.To2D(), (Player.Position + Vector3.Normalize(Skill.GetPrediction(target).CastPosition - Player.Position) * Skill.Range).To2D());
+                if (Segment.IsOnSegment && Skill.GetPrediction(col).CastPosition.Distance(new Vector3(Segment.SegmentPoint.X, col.Position.Y, Segment.SegmentPoint.Y)) < col.BoundingRadius + Skill.Width - 30 && Skill.GetPrediction(col).Hitchance >= HitChance.High)
+                {
+                    if (Smite)
+                    {
+                        return (col is Obj_AI_Minion && CastSmite(col)) ? true : false;
+                    }
+                    else return true;
+                }
             }
             return false;
         }

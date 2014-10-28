@@ -77,11 +77,7 @@ namespace Master
 
         private void AfterAttack(Obj_AI_Base unit, Obj_AI_Base target)
         {
-            if (unit.IsMe && Config.Item(Name + "qusage").GetValue<bool>() && SkillQ.IsReady() && target.IsValidTarget(LXOrbwalker.GetAutoAttackRange(Player, target)) && (LXOrbwalker.CurrentMode == LXOrbwalker.Mode.Combo || LXOrbwalker.CurrentMode == LXOrbwalker.Mode.Harass))
-            {
-                LXOrbwalker.ResetAutoAttackTimer();
-                SkillQ.Cast();
-            }
+            if (unit.IsMe && Config.Item(Name + "qusage").GetValue<bool>() && SkillQ.IsReady() && target.IsValidTarget(LXOrbwalker.GetAutoAttackRange(Player, target)) && (LXOrbwalker.CurrentMode == LXOrbwalker.Mode.Combo || LXOrbwalker.CurrentMode == LXOrbwalker.Mode.Harass)) SkillQ.Cast();
         }
 
         private void NormalCombo()

@@ -29,8 +29,7 @@ namespace Master
             SkillE = new Spell(SpellSlot.E, 600);
             SkillR = new Spell(SpellSlot.R, 600);
 
-            Config.AddSubMenu(new Menu("Key Bindings", "KeyBindings"));
-            Config.SubMenu("KeyBindings").AddItem(new MenuItem(Name + "stunActive", "Stun Cycle").SetValue(new KeyBind("Z".ToCharArray()[0], KeyBindType.Press)));
+            Config.SubMenu("Orbwalker").SubMenu("lxOrbwalker_Modes").AddItem(new MenuItem(Name + "stunActive", "Stun Cycle").SetValue(new KeyBind("Z".ToCharArray()[0], KeyBindType.Press)));
 
             Config.AddSubMenu(new Menu("Combo/Harass", "csettings"));
             Config.SubMenu("csettings").AddItem(new MenuItem(Name + "qusage", "Use Q").SetValue(true));

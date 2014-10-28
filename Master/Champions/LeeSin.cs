@@ -1,6 +1,5 @@
 ﻿using System;
 using System.Linq;
-using System.Diagnostics;
 using Color = System.Drawing.Color;
 
 using LeagueSharp;
@@ -12,9 +11,9 @@ namespace Master
 {
     class LeeSin : Program
     {
-        private const String Version = "1.1.4";
+        private const String Version = "1.1.5";
         private Obj_AI_Base allyObj = null;
-        private long lastTimeWard = 0, lastTimeJump = 0, lastTimeQ = 0, lastTimeW = 0, lastTimeE = 0, lastTimeR = 0;
+        private bool WardCasted = false, InsecCasted = false, QCasted = false, WCasted = false, ECasted = false, RCasted = false;
 
         public LeeSin()
         {
@@ -22,12 +21,11 @@ namespace Master
             SkillW = new Spell(SpellSlot.W, 700);
             SkillE = new Spell(SpellSlot.E, 425);//575
             SkillR = new Spell(SpellSlot.R, 375);
-            SkillQ.SetSkillshot(SkillQ.Instance.SData.SpellCastTime, SkillQ.Instance.SData.LineWidth, SkillQ.Instance.SData.MissileSpeed, true, SkillshotType.SkillshotLine);
+            SkillQ.SetSkillshot(SkillQ.Instance.SData.SpellCastTime, SkillQ.Instance.SData.LineWidth - 20, SkillQ.Instance.SData.MissileSpeed, true, SkillshotType.SkillshotLine);
 
-            Config.AddSubMenu(new Menu("Key Bindings", "KeyBindings"));
-            Config.SubMenu("KeyBindings").AddItem(new MenuItem(Name + "starActive", "Star Combo").SetValue(new KeyBind("X".ToCharArray()[0], KeyBindType.Press)));
-            Config.SubMenu("KeyBindings").AddItem(new MenuItem(Name + "insecMake", "Insec").SetValue(new KeyBind("T".ToCharArray()[0], KeyBindType.Press)));
-            Config.SubMenu("KeyBindings").AddItem(new MenuItem(Name + "ksbrdr", "Kill Steal Baron/Dragon").SetValue(new KeyBind("Z".ToCharArray()[0], KeyBindType.Press)));
+            Config.SubMenu("Orbwalker").SubMenu("lxOrbwalker_Modes").AddItem(new MenuItem(Name + "starActive", "Star Combo").SetValue(new KeyBind("X".ToCharArray()[0], KeyBindType.Press)));
+            Config.SubMenu("Orbwalker").SubMenu("lxOrbwalker_Modes").AddItem(new MenuItem(Name + "insecMake", "Insec").SetValue(new KeyBind("T".ToCharArray()[0], KeyBindType.Press)));
+            Config.SubMenu("Orbwalker").SubMenu("lxOrbwalker_Modes").AddItem(new MenuItem(Name + "ksbrdr", "Kill Steal Baron/Dragon").SetValue(new KeyBind("Z".ToCharArray()[0], KeyBindType.Press)));
 
             Config.AddSubMenu(new Menu("Combo", "csettings"));
             Config.SubMenu("csettings").AddItem(new MenuItem(Name + "pusage", "Use Passive").SetValue(false));
@@ -61,6 +59,7 @@ namespace Master
             }
 
             Config.AddSubMenu(new Menu("Misc", "miscs"));
+            Config.SubMenu("miscs").AddItem(new MenuItem(Name + "lasthitQ", "Use Q To Last Hit").SetValue(true));
             Config.SubMenu("miscs").AddItem(new MenuItem(Name + "surviveW", "Try Use W To Survive").SetValue(true));
             Config.SubMenu("miscs").AddItem(new MenuItem(Name + "smite", "Auto Smite Collision Minion").SetValue(true));
             Config.SubMenu("miscs").AddItem(new MenuItem(Name + "SkinID", "Skin Changer").SetValue(new Slider(4, 0, 6))).ValueChanged += SkinChanger;
@@ -80,7 +79,6 @@ namespace Master
             Obj_AI_Base.OnProcessSpellCast += OnProcessSpellCast;
             Game.OnWndProc += OnWndProc;
             Obj_AI_Base.OnCreate += OnCreate;
-            TimeTick = Stopwatch.StartNew();
             Game.PrintChat("<font color = \"#33CCCC\">Master of {0}</font> <font color = \"#fff8e7\">Brian v{1}</font>", Name, Version);
         }
 
@@ -104,6 +102,9 @@ namespace Master
                 case LXOrbwalker.Mode.LaneFreeze:
                     LaneJungClear();
                     break;
+                case LXOrbwalker.Mode.Lasthit:
+                    if (Config.Item(Name + "lasthitQ").GetValue<bool>()) LastHit();
+                    break;
                 case LXOrbwalker.Mode.Flee:
                     WardJump(Game.CursorPos);
                     break;
@@ -111,19 +112,18 @@ namespace Master
             LXOrbwalker.CustomOrbwalkMode = false;
             if (Config.Item(Name + "insecMake").GetValue<KeyBind>().Active)
             {
-                InsecCombo();
                 LXOrbwalker.CustomOrbwalkMode = true;
+                InsecCombo();
             }
-            else LXOrbwalker.SetMovement(true);
             if (Config.Item(Name + "starActive").GetValue<KeyBind>().Active)
             {
-                StarCombo();
                 LXOrbwalker.CustomOrbwalkMode = true;
+                StarCombo();
             }
             if (Config.Item(Name + "ksbrdr").GetValue<KeyBind>().Active)
             {
-                KillStealBrDr();
                 LXOrbwalker.CustomOrbwalkMode = true;
+                KillStealBrDr();
             }
         }
 
@@ -175,10 +175,32 @@ namespace Master
         private void OnProcessSpellCast(Obj_AI_Base sender, GameObjectProcessSpellCastEventArgs args)
         {
             if (!sender.IsMe) return;
-            if (args.SData.Name == "BlindMonkQOne") lastTimeQ = TimeTick.ElapsedMilliseconds;
-            if (args.SData.Name == "BlindMonkWOne") lastTimeW = TimeTick.ElapsedMilliseconds;
-            if (args.SData.Name == "BlindMonkEOne") lastTimeE = TimeTick.ElapsedMilliseconds;
-            if (args.SData.Name == "BlindMonkRKick") lastTimeR = TimeTick.ElapsedMilliseconds;
+            if (args.SData.Name == "BlindMonkQOne")
+            {
+                QCasted = true;
+                Utility.DelayAction.Add(2000, () => QCasted = false);
+            }
+            if (args.SData.Name == "BlindMonkWOne")
+            {
+                WCasted = true;
+                Utility.DelayAction.Add((LXOrbwalker.CurrentMode == LXOrbwalker.Mode.LaneClear || LXOrbwalker.CurrentMode == LXOrbwalker.Mode.LaneFreeze) ? 2000 : 1000, () => WCasted = false);
+            }
+            if (args.SData.Name == "BlindMonkEOne")
+            {
+                ECasted = true;
+                Utility.DelayAction.Add(2000, () => ECasted = false);
+            }
+            if (args.SData.Name == "BlindMonkRKick")
+            {
+                RCasted = true;
+                Utility.DelayAction.Add(700, () => RCasted = false);
+                if (Config.Item(Name + "insecMake").GetValue<KeyBind>().Active)
+                {
+                    InsecCasted = true;
+                    Utility.DelayAction.Add(2000, () => InsecCasted = false);
+                }
+                else InsecCasted = false;
+            }
         }
 
         private void OnWndProc(WndEventArgs args)
@@ -200,7 +222,7 @@ namespace Master
                 if (caster.IsEnemy)
                 {
                     var ShieldBuff = new Int32[] { 40, 80, 120, 160, 200 }[SkillW.Level - 1] + 0.8 * Player.FlatMagicDamageMod;
-                    if (missle.SData.Name.Contains("BasicAttack"))
+                    if (LXOrbwalker.IsAutoAttack(missle.SData.Name) && !LXOrbwalker.IsAutoAttackReset(missle.SData.Name))
                     {
                         if (missle.Target.IsMe && Player.Health <= caster.GetAutoAttackDamage(Player, true) && Player.Health + ShieldBuff > caster.GetAutoAttackDamage(Player, true)) SkillW.CastOnUnit(Player, PacketCast);
                     }
@@ -219,24 +241,31 @@ namespace Master
         private void NormalCombo()
         {
             if (targetObj == null) return;
-            if (Config.Item(Name + "pusage").GetValue<bool>() && Player.HasBuff("blindmonkpassive_cosmetic", true) && LXOrbwalker.InAutoAttackRange(targetObj)) return;
+            if (Config.Item(Name + "pusage").GetValue<bool>() && Player.HasBuff("blindmonkpassive_cosmetic", true) && LXOrbwalker.InAutoAttackRange(targetObj) && LXOrbwalker.CanAttack()) return;
             if (Config.Item(Name + "eusage").GetValue<bool>() && SkillE.IsReady() && SkillE.Instance.Name == "BlindMonkEOne" && SkillE.InRange(targetObj.Position)) SkillE.Cast();
             if (Config.Item(Name + "qusage").GetValue<bool>() && SkillQ.IsReady() && SkillQ.Instance.Name == "BlindMonkQOne")
             {
-                if (Config.Item(Name + "smite").GetValue<bool>() && SkillQ.GetPrediction(targetObj).Hitchance == HitChance.Collision) CheckingCollision(targetObj, SkillQ);
-                SkillQ.CastIfHitchanceEquals(targetObj, HitChance.VeryHigh, PacketCast);
+                if (Config.Item(Name + "smite").GetValue<bool>() && SkillQ.GetPrediction(targetObj).Hitchance == HitChance.Collision)
+                {
+                    if (CheckingCollision(targetObj, SkillQ))
+                    {
+                        SkillQ.Cast(SkillQ.GetPrediction(targetObj).CastPosition, PacketCast);
+                    }
+                    else SkillQ.CastIfHitchanceEquals(targetObj, HitChance.VeryHigh, PacketCast);
+                }
+                else SkillQ.CastIfHitchanceEquals(targetObj, HitChance.VeryHigh, PacketCast);
             }
             if (Config.Item(Name + "qusage").GetValue<bool>() && SkillQ.IsReady() && targetObj.IsValidTarget(1300) && (targetObj.HasBuff("BlindMonkQOne", true) || targetObj.HasBuff("blindmonkqonechaos", true)))
             {
-                if (Player.Distance(targetObj) > 500 || SkillQ.IsKillable(targetObj, 1) || (targetObj.HasBuff("BlindMonkEOne", true) && SkillE.InRange(targetObj.Position)) || TimeTick.ElapsedMilliseconds - lastTimeQ > 2000) SkillQ.Cast();
+                if (Player.Distance(targetObj) > 500 || SkillQ.IsKillable(targetObj, 1) || (targetObj.HasBuff("BlindMonkEOne", true) && SkillE.InRange(targetObj.Position)) || !QCasted) SkillQ.Cast();
             }
             if (Config.Item(Name + "eusage").GetValue<bool>() && SkillE.IsReady() && targetObj.IsValidTarget(575) && targetObj.HasBuff("BlindMonkEOne", true))
             {
-                if (Player.Distance(targetObj) > 450 || TimeTick.ElapsedMilliseconds - lastTimeE > 2000) SkillE.Cast();
+                if (Player.Distance(targetObj) > 450 || !ECasted) SkillE.Cast();
             }
             if (Config.Item(Name + "rusage").GetValue<bool>() && Config.Item(Name + "ult" + targetObj.ChampionName).GetValue<bool>() && SkillR.IsReady() && SkillR.InRange(targetObj.Position))
             {
-                if (SkillR.IsKillable(targetObj) || (targetObj.Health - SkillR.GetDamage(targetObj) <= GetQ2Dmg(targetObj, SkillR.GetDamage(targetObj)) && SkillQ.IsReady() && (targetObj.HasBuff("BlindMonkQOne", true) || targetObj.HasBuff("blindmonkqonechaos", true)) && Player.Mana >= 50)) SkillR.CastOnUnit(targetObj, PacketCast);
+                if ((SkillR.GetHealthPrediction(targetObj) > 1 && SkillR.GetHealthPrediction(targetObj) < 2.5) || (targetObj.Health - SkillR.GetDamage(targetObj) <= GetQ2Dmg(targetObj, SkillR.GetDamage(targetObj)) && SkillQ.IsReady() && (targetObj.HasBuff("BlindMonkQOne", true) || targetObj.HasBuff("blindmonkqonechaos", true)) && Player.Mana >= 50)) SkillR.CastOnUnit(targetObj, PacketCast);
             }
             if (Config.Item(Name + "wusage").GetValue<bool>() && SkillW.IsReady() && SkillE.InRange(targetObj.Position) && Player.Health * 100 / Player.MaxHealth <= Config.Item(Name + "autowusage").GetValue<Slider>().Value)
             {
@@ -244,7 +273,7 @@ namespace Master
                 {
                     SkillW.CastOnUnit(Player, PacketCast);
                 }
-                else if (!Player.HasBuff("blindmonkwoneshield", true)) SkillW.Cast();
+                else if (!Player.HasBuff("blindmonkwoneshield", true) && !WCasted) SkillW.Cast();
             }
             if (Config.Item(Name + "iusage").GetValue<bool>()) UseItem(targetObj);
             if (Config.Item(Name + "ignite").GetValue<bool>()) CastIgnite(targetObj);
@@ -253,55 +282,55 @@ namespace Master
         private void Harass()
         {
             if (targetObj == null) return;
-            var jumpObj = ObjectManager.Get<Obj_AI_Base>().Where(i => !i.IsMe && !(i is Obj_AI_Turret) && i.Distance(Player.ServerPosition) <= SkillW.Range + i.BoundingRadius).OrderBy(i => i.Distance(ObjectManager.Get<Obj_AI_Turret>().Where(a => a.IsAlly).OrderBy(a => a.Distance(Player.ServerPosition)).First().ServerPosition)).FirstOrDefault();
+            var jumpObj = ObjectManager.Get<Obj_AI_Base>().Where(i => !i.IsMe && i.IsAlly && !(i is Obj_AI_Turret) && i.ServerPosition.Distance(Player.ServerPosition) <= SkillW.Range + i.BoundingRadius).OrderByDescending(i => i.ServerPosition.Distance(Player.ServerPosition)).OrderBy(i => i.Distance(ObjectManager.Get<Obj_AI_Turret>().Where(a => a.IsAlly && !a.IsDead).OrderBy(a => a.Distance(Player)).First()));
             if (SkillQ.IsReady())
             {
                 if (SkillQ.Instance.Name == "BlindMonkQOne")
                 {
-                    if (Config.Item(Name + "smite").GetValue<bool>() && SkillQ.GetPrediction(targetObj).Hitchance == HitChance.Collision) CheckingCollision(targetObj, SkillQ);
-                    SkillQ.CastIfHitchanceEquals(targetObj, HitChance.VeryHigh, PacketCast);
+                    if (Config.Item(Name + "smite").GetValue<bool>() && SkillQ.GetPrediction(targetObj).Hitchance == HitChance.Collision)
+                    {
+                        if (CheckingCollision(targetObj, SkillQ))
+                        {
+                            SkillQ.Cast(SkillQ.GetPrediction(targetObj).CastPosition, PacketCast);
+                        }
+                        else SkillQ.CastIfHitchanceEquals(targetObj, HitChance.VeryHigh, PacketCast);
+                    }
+                    else SkillQ.CastIfHitchanceEquals(targetObj, HitChance.VeryHigh, PacketCast);
                 }
-                else if ((targetObj.HasBuff("BlindMonkQOne", true) || targetObj.HasBuff("blindmonkqonechaos", true)) && targetObj.IsValidTarget(1300) && (SkillQ.IsKillable(targetObj, 1) || (SkillW.IsReady() && SkillW.Instance.Name == "BlindMonkWOne" && Player.Mana >= (Config.Item(Name + "useHarE").GetValue<bool>() ? 130 : 80) && Player.Health * 100 / Player.MaxHealth >= Config.Item(Name + "harMode").GetValue<Slider>().Value && jumpObj != null))) SkillQ.Cast();
+                else if ((targetObj.HasBuff("BlindMonkQOne", true) || targetObj.HasBuff("blindmonkqonechaos", true)) && targetObj.IsValidTarget(1300) && (SkillQ.IsKillable(targetObj, 1) || (SkillW.IsReady() && SkillW.Instance.Name == "BlindMonkWOne" && Player.Mana >= (Config.Item(Name + "useHarE").GetValue<bool>() ? 130 : 80) && Player.Health * 100 / Player.MaxHealth >= Config.Item(Name + "harMode").GetValue<Slider>().Value && jumpObj.Count() >= 1))) SkillQ.Cast();
             }
             if (!SkillQ.IsReady() && Config.Item(Name + "useHarE").GetValue<bool>() && SkillE.IsReady() && SkillE.Instance.Name == "BlindMonkEOne" && SkillE.InRange(targetObj.Position)) SkillE.Cast();
-            if (!SkillQ.IsReady() && SkillW.IsReady() && SkillW.Instance.Name == "BlindMonkWOne" && ((SkillE.Level == 0 && Utility.CountEnemysInRange(200) >= 1) || (Config.Item(Name + "useHarE").GetValue<bool>() && targetObj.HasBuff("BlindMonkEOne", true)) || (!Config.Item(Name + "useHarE").GetValue<bool>() && Utility.CountEnemysInRange(200) >= 1)))
-            {
-                if (TimeTick.ElapsedMilliseconds - lastTimeJump > 2000)
-                {
-                    SkillW.CastOnUnit(jumpObj, PacketCast);
-                    lastTimeJump = TimeTick.ElapsedMilliseconds;
-                }
-            }
+            if (!SkillQ.IsReady() && SkillW.IsReady() && SkillW.Instance.Name == "BlindMonkWOne" && ((SkillE.Level == 0 && Utility.CountEnemysInRange(200) >= 1) || (Config.Item(Name + "useHarE").GetValue<bool>() && targetObj.HasBuff("BlindMonkEOne", true)) || (!Config.Item(Name + "useHarE").GetValue<bool>() && Utility.CountEnemysInRange(200) >= 1)) && !WCasted) SkillW.CastOnUnit(jumpObj.First(), PacketCast);
         }
 
         private void LaneJungClear()
         {
             var minionObj = MinionManager.GetMinions(Player.Position, SkillQ.Range, MinionTypes.All, MinionTeam.NotAlly).FirstOrDefault();
             if (minionObj == null) return;
-            var Passive = Player.HasBuff("blindmonkpassive_cosmetic", true);
-            if (Config.Item(Name + "useClearW").GetValue<bool>() && SkillW.IsReady() && LXOrbwalker.InAutoAttackRange(minionObj))
+            if (Player.HasBuff("blindmonkpassive_cosmetic", true) && LXOrbwalker.InAutoAttackRange(minionObj) && LXOrbwalker.CanAttack()) return;
+            if (Config.Item(Name + "useClearE").GetValue<bool>() && SkillE.IsReady() && SkillE.InRange(minionObj.Position))
             {
-                if (SkillW.Instance.Name == "BlindMonkWOne")
+                if (SkillE.Instance.Name == "BlindMonkEOne")
                 {
-                    if (!Passive) SkillW.CastOnUnit(Player, PacketCast);
+                    SkillE.Cast();
                 }
-                else if (!Passive || TimeTick.ElapsedMilliseconds - lastTimeW > 2800) SkillW.Cast();
+                else if (minionObj.HasBuff("BlindMonkEOne", true) && minionObj.IsValidTarget(575) && !ECasted) SkillE.Cast();
             }
             if (Config.Item(Name + "useClearQ").GetValue<bool>() && SkillQ.IsReady())
             {
                 if (SkillQ.Instance.Name == "BlindMonkQOne")
                 {
-                    if (!Passive) SkillQ.Cast(minionObj, PacketCast);
+                    SkillQ.CastIfHitchanceEquals(minionObj, HitChance.VeryHigh, PacketCast);
                 }
-                else if ((minionObj.HasBuff("BlindMonkQOne", true) || minionObj.HasBuff("blindmonkqonechaos", true)) && (!Passive || SkillQ.IsKillable(minionObj, 1) || TimeTick.ElapsedMilliseconds - lastTimeQ > 2800 || Player.Distance(minionObj) > 600)) SkillQ.Cast();
+                else if ((minionObj.HasBuff("BlindMonkQOne", true) || minionObj.HasBuff("blindmonkqonechaos", true)) && (SkillQ.IsKillable(minionObj, 1) || !QCasted || Player.Distance(minionObj) > 600)) SkillQ.Cast();
             }
-            if (Config.Item(Name + "useClearE").GetValue<bool>() && SkillE.IsReady() && SkillE.InRange(minionObj.Position))
+            if (Config.Item(Name + "useClearW").GetValue<bool>() && SkillW.IsReady() && LXOrbwalker.InAutoAttackRange(minionObj))
             {
-                if (SkillE.Instance.Name == "BlindMonkEOne")
+                if (SkillW.Instance.Name == "BlindMonkWOne")
                 {
-                    if (!Passive) SkillE.Cast();
+                    SkillW.CastOnUnit(Player, PacketCast);
                 }
-                else if (minionObj.HasBuff("BlindMonkEOne", true) && minionObj.IsValidTarget(575) && (!Passive || TimeTick.ElapsedMilliseconds - lastTimeE > 2800 || Player.Distance(minionObj) > 500)) SkillE.Cast();
+                else if (!WCasted) SkillW.Cast();
             }
             if (Config.Item(Name + "useClearI").GetValue<bool>() && Player.Distance(minionObj) <= 350)
             {
@@ -310,32 +339,28 @@ namespace Master
             }
         }
 
+        private void LastHit()
+        {
+            var minionObj = MinionManager.GetMinions(Player.Position, SkillQ.Range, MinionTypes.All, MinionTeam.NotAlly).FirstOrDefault(i => SkillQ.IsKillable(i) && Player.Distance(i) > LXOrbwalker.GetAutoAttackRange(Player, i) + 150);
+            if (minionObj != null && SkillQ.IsReady() && SkillQ.Instance.Name == "BlindMonkQOne") SkillQ.CastIfHitchanceEquals(minionObj, HitChance.VeryHigh, PacketCast);
+        }
+
         private void WardJump(Vector3 Pos)
         {
             if ((SkillW.IsReady() && SkillW.Instance.Name != "BlindMonkWOne") || !SkillW.IsReady()) return;
             bool Jumped = false;
             if (Player.Distance(Pos) > SkillW.Range) Pos = Player.Position + Vector3.Normalize(Pos - Player.Position) * 600;
-            foreach (var jumpObj in ObjectManager.Get<Obj_AI_Base>().Where(i => !i.IsMe && i.IsAlly && !(i is Obj_AI_Turret) && i.ServerPosition.Distance(Pos) <= 200))
+            foreach (var jumpObj in ObjectManager.Get<Obj_AI_Base>().Where(i => !i.IsMe && i.IsAlly && !(i is Obj_AI_Turret) && i.ServerPosition.Distance(Pos) <= (Config.Item(Name + "insecMake").GetValue<KeyBind>().Active ? 130 : 230)))
             {
                 Jumped = true;
-                if (jumpObj.ServerPosition.Distance(Player.ServerPosition) <= SkillW.Range + jumpObj.BoundingRadius)
-                {
-                    if (TimeTick.ElapsedMilliseconds - lastTimeJump > 2000)
-                    {
-                        SkillW.CastOnUnit(jumpObj, PacketCast);
-                        lastTimeJump = TimeTick.ElapsedMilliseconds;
-                    }
-                    else return;
-                }
+                if (jumpObj.ServerPosition.Distance(Player.ServerPosition) <= SkillW.Range + jumpObj.BoundingRadius && !WCasted) SkillW.CastOnUnit(jumpObj, PacketCast);
                 return;
             }
-            if (!Jumped && Ward != null)
+            if (!Jumped && Ward != null && !WardCasted)
             {
-                if (TimeTick.ElapsedMilliseconds - lastTimeWard > 2000)
-                {
-                    Ward.UseItem(Pos);
-                    lastTimeWard = TimeTick.ElapsedMilliseconds;
-                }
+                Ward.UseItem(Pos);
+                WardCasted = true;
+                Utility.DelayAction.Add(1000, () => WardCasted = false);
             }
         }
 
@@ -344,16 +369,27 @@ namespace Master
             LXOrbwalker.Orbwalk(Game.CursorPos, targetObj);
             if (targetObj == null) return;
             if (SkillE.IsReady() && SkillE.Instance.Name == "BlindMonkEOne" && SkillE.InRange(targetObj.Position)) SkillE.Cast();
-            if (SkillQ.IsReady() && SkillQ.Instance.Name == "BlindMonkQOne")
+            if (SkillQ.IsReady())
             {
-                if (Config.Item(Name + "smite").GetValue<bool>() && SkillQ.GetPrediction(targetObj).Hitchance == HitChance.Collision) CheckingCollision(targetObj, SkillQ);
-                SkillQ.CastIfHitchanceEquals(targetObj, HitChance.VeryHigh, PacketCast);
+                if (SkillQ.Instance.Name == "BlindMonkQOne")
+                {
+                    if (Config.Item(Name + "smite").GetValue<bool>() && SkillQ.GetPrediction(targetObj).Hitchance == HitChance.Collision)
+                    {
+                        if (CheckingCollision(targetObj, SkillQ))
+                        {
+                            SkillQ.Cast(SkillQ.GetPrediction(targetObj).CastPosition, PacketCast);
+                        }
+                        else SkillQ.CastIfHitchanceEquals(targetObj, HitChance.VeryHigh, PacketCast);
+                    }
+                    else SkillQ.CastIfHitchanceEquals(targetObj, HitChance.VeryHigh, PacketCast);
+                }
+                else if (targetObj.IsValidTarget(1300) && (targetObj.HasBuff("BlindMonkQOne", true) || targetObj.HasBuff("blindmonkqonechaos", true)) && SkillQ.IsKillable(targetObj, 1)) SkillQ.Cast();
             }
-            if (!SkillR.InRange(targetObj.Position) && SkillR.IsReady() && SkillQ.IsReady() && (targetObj.HasBuff("BlindMonkQOne", true) || targetObj.HasBuff("blindmonkqonechaos", true)) && SkillW.InRange(targetObj.Position)) WardJump(targetObj.Position);
+            if (!SkillR.InRange(targetObj.Position) && SkillR.IsReady() && SkillQ.IsReady() && (targetObj.HasBuff("BlindMonkQOne", true) || targetObj.HasBuff("blindmonkqonechaos", true)) && Player.Distance(targetObj) <= SkillW.Range + SkillR.Range - 150 && SkillW.IsReady() && SkillW.Instance.Name == "BlindMonkWOne" && !WCasted) WardJump(targetObj.Position);
             UseItem(targetObj);
             if (SkillR.IsReady() && SkillQ.IsReady() && (targetObj.HasBuff("BlindMonkQOne", true) || targetObj.HasBuff("blindmonkqonechaos", true)) && SkillR.InRange(targetObj.Position) && Player.Mana >= 50) SkillR.CastOnUnit(targetObj, PacketCast);
-            if (!SkillR.IsReady() && SkillQ.IsReady() && targetObj.IsValidTarget(1300) && (targetObj.HasBuff("BlindMonkQOne", true) || targetObj.HasBuff("blindmonkqonechaos", true)) && (SkillQ.IsKillable(targetObj, 1) || TimeTick.ElapsedMilliseconds - lastTimeR > 700)) SkillQ.Cast();
-            if (!SkillR.IsReady() && SkillE.IsReady() && targetObj.IsValidTarget(575) && targetObj.HasBuff("BlindMonkEOne", true) && (Player.Distance(targetObj) > 450 || TimeTick.ElapsedMilliseconds - lastTimeE > 2000)) SkillE.Cast();
+            if (!SkillR.IsReady() && SkillQ.IsReady() && targetObj.IsValidTarget(1300) && (targetObj.HasBuff("BlindMonkQOne", true) || targetObj.HasBuff("blindmonkqonechaos", true)) && (SkillQ.IsKillable(targetObj, 1) || !RCasted)) SkillQ.Cast();
+            if (!SkillR.IsReady() && SkillE.IsReady() && targetObj.IsValidTarget(575) && targetObj.HasBuff("BlindMonkEOne", true) && (Player.Distance(targetObj) > 450 || !ECasted)) SkillE.Cast();
             CastIgnite(targetObj);
         }
 
@@ -363,58 +399,69 @@ namespace Master
             if (targetObj == null || (Config.Item(Name + "insecMode").GetValue<StringList>().SelectedIndex != 2 && allyObj == null)) return;
             if (SkillR.IsReady())
             {
-                if (SkillR.InRange(targetObj.Position))
+                Vector3 posKickTo = (Config.Item(Name + "insecMode").GetValue<StringList>().SelectedIndex != 2) ? allyObj.Position : Game.CursorPos;
+                Vector3 posJumpTo = posKickTo + Vector3.Normalize(targetObj.Position - posKickTo) * (targetObj.Distance(posKickTo) + 250);
+                if (SkillR.InRange(targetObj.Position) && Player.Distance(posJumpTo) <= 100)
                 {
-                    var pos = Player.Position + Vector3.Normalize(targetObj.Position - Player.Position) * (targetObj.Distance(Player) + 500);
-                    var newDistance = (Config.Item(Name + "insecMode").GetValue<StringList>().SelectedIndex != 2) ? allyObj.Distance(targetObj) - allyObj.Distance(pos) : Game.CursorPos.Distance(targetObj.Position) - Game.CursorPos.Distance(pos);
-                    if (newDistance > 0 && newDistance / 500 > 0.7)
-                    {
-                        SkillR.CastOnUnit(targetObj, PacketCast);
-                        LXOrbwalker.SetMovement(true);
-                        return;
-                    }
+                    SkillR.CastOnUnit(targetObj, PacketCast);
+                    return;
                 }
-                var posInsec = Prediction.GetPrediction(targetObj, 0.25f, 2000).UnitPosition;
-                if (SkillW.IsReady() && SkillW.Instance.Name == "BlindMonkWOne")
+                if (Config.Item(Name + "insecFlash").GetValue<bool>())
                 {
-                    Vector3 posKickTo = (Config.Item(Name + "insecMode").GetValue<StringList>().SelectedIndex != 2) ? allyObj.Position : Game.CursorPos;
-                    Vector3 posJumpTo = posKickTo + Vector3.Normalize(posInsec - posKickTo) * (posInsec.Distance(posKickTo) + 300);
-                    if (Player.Distance(posJumpTo) < 600)
+                    if (SkillW.IsReady() && SkillW.Instance.Name == "BlindMonkWOne" && !WCasted && Player.Distance(posJumpTo) < 600)
                     {
                         WardJump(posJumpTo);
-                        LXOrbwalker.SetMovement(false);
                         return;
+                    }
+                    if (FlashReady())
+                    {
+                        var Obj = ObjectManager.Get<Obj_AI_Base>().Where(i => !i.IsMe && i.IsAlly && !(i is Obj_AI_Turret) && i.ServerPosition.Distance(Player.ServerPosition) <= SkillW.Range + i.BoundingRadius && i.Distance(posJumpTo) < 600).OrderBy(i => i.Distance(posJumpTo)).FirstOrDefault();
+                        if (Obj != null && Player.Distance(posJumpTo) < 1300)
+                        {
+                            if (SkillW.IsReady() && SkillW.Instance.Name == "BlindMonkWOne")
+                            {
+                                if (!WCasted) SkillW.CastOnUnit(Obj, PacketCast);
+                                if (WCasted) Utility.DelayAction.Add(1000, () => CastFlash(posJumpTo));
+                                return;
+                            }
+                        }
+                        else if (!WCasted && Player.Distance(posJumpTo) >= 300 && Player.Distance(posJumpTo) < 600)
+                        {
+                            CastFlash(posJumpTo);
+                            return;
+                        }
                     }
                 }
-                if (FlashReady() && TimeTick.ElapsedMilliseconds - lastTimeJump > 500)
+                else if (SkillW.IsReady() && SkillW.Instance.Name == "BlindMonkWOne" && !WCasted && Player.Distance(posJumpTo) < 600)
                 {
-                    Vector3 posKickTo = (Config.Item(Name + "insecMode").GetValue<StringList>().SelectedIndex != 2) ? allyObj.Position : Game.CursorPos;
-                    Vector3 posFlashTo = posKickTo + Vector3.Normalize(posInsec - posKickTo) * (posInsec.Distance(posKickTo) + 400);
-                    if (Player.Distance(posFlashTo) < 600)
-                    {
-                        CastFlash(posFlashTo);
-                        LXOrbwalker.SetMovement(false);
-                        return;
-                    }
+                    WardJump(posJumpTo);
+                    return;
                 }
             }
             if (SkillQ.IsReady())
             {
                 if (SkillQ.Instance.Name == "BlindMonkQOne")
                 {
-                    if (Config.Item(Name + "smite").GetValue<bool>() && SkillQ.GetPrediction(targetObj).Hitchance == HitChance.Collision) CheckingCollision(targetObj, SkillQ);
-                    SkillQ.CastIfHitchanceEquals(targetObj, HitChance.VeryHigh, PacketCast);
+                    if (Config.Item(Name + "smite").GetValue<bool>() && SkillQ.GetPrediction(targetObj).Hitchance == HitChance.Collision)
+                    {
+                        if (CheckingCollision(targetObj, SkillQ))
+                        {
+                            SkillQ.Cast(SkillQ.GetPrediction(targetObj).CastPosition, PacketCast);
+                        }
+                        else SkillQ.CastIfHitchanceEquals(targetObj, HitChance.VeryHigh, PacketCast);
+                    }
+                    else SkillQ.CastIfHitchanceEquals(targetObj, HitChance.VeryHigh, PacketCast);
                 }
                 else
                 {
                     if ((targetObj.HasBuff("BlindMonkQOne", true) || targetObj.HasBuff("blindmonkqonechaos", true)) && targetObj.IsValidTarget(1300))
                     {
-                        if (Player.Distance(targetObj) > 600 || SkillQ.IsKillable(targetObj, 1) || (!SkillR.IsReady() && TimeTick.ElapsedMilliseconds - lastTimeR > 700 && TimeTick.ElapsedMilliseconds - lastTimeR < 2000) || TimeTick.ElapsedMilliseconds - lastTimeQ > 2000) SkillQ.Cast();
+                        if (Player.Distance(targetObj) > 600 || SkillQ.IsKillable(targetObj, 1) || (!SkillR.IsReady() && !RCasted && InsecCasted) || !QCasted) SkillQ.Cast();
                     }
                     else
                     {
                         var enemyObj = ObjectManager.Get<Obj_AI_Base>().FirstOrDefault(i => i.IsValidTarget(1300) && i.Distance(targetObj) < 600 && (i.HasBuff("BlindMonkQOne", true) || i.HasBuff("blindmonkqonechaos", true)));
-                        if (enemyObj != null && (Player.Distance(enemyObj) > 600 || TimeTick.ElapsedMilliseconds - lastTimeQ > 2000)) SkillQ.Cast();
+                        if (enemyObj != null && (Player.Distance(enemyObj) > 600 || !QCasted)) SkillQ.Cast();
                     }
                 }
             }
@@ -458,8 +505,8 @@ namespace Master
             else
             {
                 nearObj = ObjectManager.Get<Obj_AI_Turret>().Where(i => i.IsAlly && !i.IsDead).OrderBy(i => i.Distance(Player)).First();
-                var nearMinion = ObjectManager.Get<Obj_AI_Minion>().Where(i => i.IsAlly && !i.IsDead && i.Distance(Player) < 1300).OrderBy(i => i.Distance(Player)).FirstOrDefault();
-                if (Player.Distance(nearObj) > 1600 && nearMinion != null) nearObj = nearMinion;
+                var nearMinion = (targetObj != null) ? ObjectManager.Get<Obj_AI_Minion>().Where(i => i.IsAlly && !i.IsDead && i.Distance(Player) < 1600).OrderByDescending(i => i.Distance(targetObj)).FirstOrDefault() : null;
+                if (Player.Distance(nearObj) > 1500 && nearMinion != null) nearObj = nearMinion;
             }
             return nearObj;
         }

@@ -139,9 +139,9 @@ namespace Master
             {
                 if (Player.Health * 100 / Player.MaxHealth >= Config.Item(Name + "autoeusage").GetValue<Slider>().Value)
                 {
-                    SkillE.Cast(targetObj.Position + Vector3.Normalize(targetObj.Position - Player.Position) * 100, PacketCast);
+                    SkillE.Cast(targetObj.Position + Vector3.Normalize(targetObj.Position - Player.Position) * 200, PacketCast);
                 }
-                else if (SkillR.IsReady() || (Player.Mana >= 70 && SkillQ.IsReady())) SkillE.Cast(targetObj.Position + Vector3.Normalize(targetObj.Position - Player.Position) * 100, PacketCast);
+                else if (SkillR.IsReady() || (Player.Mana >= 70 && SkillQ.IsReady())) SkillE.Cast(targetObj.Position + Vector3.Normalize(targetObj.Position - Player.Position) * 200, PacketCast);
             }
             if (Config.Item(Name + "iusage").GetValue<bool>()) UseItem(targetObj);
             if (Config.Item(Name + "ignite").GetValue<bool>()) CastIgnite(targetObj);
@@ -156,8 +156,8 @@ namespace Master
 
         private void KillSteal()
         {
-            var target = ObjectManager.Get<Obj_AI_Hero>().FirstOrDefault(i => i.IsValidTarget(SkillE.Range) && SkillE.IsKillable(i));
-            if (target != null && SkillE.IsReady()) SkillE.Cast(targetObj.Position + Vector3.Normalize(targetObj.Position - Player.Position) * 100, PacketCast);
+            var target = ObjectManager.Get<Obj_AI_Hero>().FirstOrDefault(i => i.IsValidTarget(SkillE.Range) && SkillE.IsKillable(i) && i != targetObj);
+            if (target != null && SkillE.IsReady()) SkillE.Cast(targetObj.Position + Vector3.Normalize(targetObj.Position - Player.Position) * 200, PacketCast);
         }
 
         private void UseItem(Obj_AI_Hero target)

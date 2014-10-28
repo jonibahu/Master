@@ -1,6 +1,5 @@
 ﻿using System;
 using System.Linq;
-using System.Diagnostics;
 using Color = System.Drawing.Color;
 
 using LeagueSharp;
@@ -14,7 +13,7 @@ namespace Master
     {
         private const String Version = "1.0.0";
         private Int32 Sheen = 3057, Trinity = 3075;
-        private long lastTimeWard = 0, lastTimeJump = 0;
+        private bool WardCasted = false, JumpCasted = false;
 
         public Jax()
         {
@@ -65,7 +64,6 @@ namespace Master
             Interrupter.OnPossibleToInterrupt += OnPossibleToInterrupt;
             Obj_AI_Base.OnProcessSpellCast += OnProcessSpellCast;
             LXOrbwalker.AfterAttack += AfterAttack;
-            TimeTick = Stopwatch.StartNew();
             Game.PrintChat("<font color = \"#33CCCC\">Master of {0}</font> <font color = \"#fff8e7\">Brian v{1}</font>", Name, Version);
         }
 
@@ -147,32 +145,16 @@ namespace Master
                     switch (LXOrbwalker.CurrentMode)
                     {
                         case LXOrbwalker.Mode.Combo:
-                            if (Config.Item(Name + "wusage").GetValue<bool>() && Config.Item(Name + "wuseMode").GetValue<StringList>().SelectedIndex == 0)
-                            {
-                                LXOrbwalker.ResetAutoAttackTimer();
-                                SkillW.Cast();
-                            }
+                            if (Config.Item(Name + "wusage").GetValue<bool>() && Config.Item(Name + "wuseMode").GetValue<StringList>().SelectedIndex == 0) SkillW.Cast();
                             break;
                         case LXOrbwalker.Mode.Harass:
-                            if (Config.Item(Name + "useHarW").GetValue<bool>() && !Config.Item(Name + "useHarQ").GetValue<bool>())
-                            {
-                                LXOrbwalker.ResetAutoAttackTimer();
-                                SkillW.Cast();
-                            }
+                            if (Config.Item(Name + "useHarW").GetValue<bool>() && !Config.Item(Name + "useHarQ").GetValue<bool>()) SkillW.Cast();
                             break;
                         case LXOrbwalker.Mode.LaneClear:
-                            if (Config.Item(Name + "useClearW").GetValue<bool>() && Config.Item(Name + "useClearWMode").GetValue<StringList>().SelectedIndex == 0)
-                            {
-                                LXOrbwalker.ResetAutoAttackTimer();
-                                SkillW.Cast();
-                            }
+                            if (Config.Item(Name + "useClearW").GetValue<bool>() && Config.Item(Name + "useClearWMode").GetValue<StringList>().SelectedIndex == 0) SkillW.Cast();
                             break;
                         case LXOrbwalker.Mode.LaneFreeze:
-                            if (Config.Item(Name + "useClearW").GetValue<bool>() && Config.Item(Name + "useClearWMode").GetValue<StringList>().SelectedIndex == 0)
-                            {
-                                LXOrbwalker.ResetAutoAttackTimer();
-                                SkillW.Cast();
-                            }
+                            if (Config.Item(Name + "useClearW").GetValue<bool>() && Config.Item(Name + "useClearWMode").GetValue<StringList>().SelectedIndex == 0) SkillW.Cast();
                             break;
                     }
                 }
@@ -192,7 +174,7 @@ namespace Master
             }
             if (Config.Item(Name + "qusage").GetValue<bool>() && SkillQ.IsReady() && SkillQ.InRange(targetObj.Position))
             {
-                if ((Config.Item(Name + "eusage").GetValue<bool>() && SkillE.IsReady() && Player.HasBuff("JaxCounterStrike", true) && !SkillE.InRange(targetObj.Position)) || (!LXOrbwalker.InAutoAttackRange(targetObj) && Player.Distance(targetObj) > 450)) SkillQ.CastOnUnit(targetObj, PacketCast);
+                if ((Config.Item(Name + "eusage").GetValue<bool>() && SkillE.IsReady() && Player.HasBuff("JaxCounterStrike", true) && !SkillE.InRange(targetObj.Position)) || (!LXOrbwalker.InAutoAttackRange(targetObj) && Player.Distance(targetObj) > 425)) SkillQ.CastOnUnit(targetObj, PacketCast);
             }
             if (Config.Item(Name + "rusage").GetValue<bool>() && SkillR.IsReady())
             {
@@ -227,7 +209,7 @@ namespace Master
             }
             if (Config.Item(Name + "useHarQ").GetValue<bool>() && SkillQ.IsReady() && SkillQ.InRange(targetObj.Position) && Player.Health * 100 / Player.MaxHealth >= Config.Item(Name + "harMode").GetValue<Slider>().Value)
             {
-                if ((Config.Item(Name + "useHarE").GetValue<bool>() && SkillE.IsReady() && Player.HasBuff("JaxCounterStrike", true) && !SkillE.InRange(targetObj.Position)) || (!LXOrbwalker.InAutoAttackRange(targetObj) && Player.Distance(targetObj) > 450)) SkillQ.CastOnUnit(targetObj, PacketCast);
+                if ((Config.Item(Name + "useHarE").GetValue<bool>() && SkillE.IsReady() && Player.HasBuff("JaxCounterStrike", true) && !SkillE.InRange(targetObj.Position)) || (!LXOrbwalker.InAutoAttackRange(targetObj) && Player.Distance(targetObj) > 425)) SkillQ.CastOnUnit(targetObj, PacketCast);
             }
         }
 
@@ -245,7 +227,7 @@ namespace Master
             }
             if (Config.Item(Name + "useClearQ").GetValue<bool>() && SkillQ.IsReady() && SkillQ.InRange(minionObj.Position))
             {
-                if ((Config.Item(Name + "useClearE").GetValue<bool>() && SkillE.IsReady() && Player.HasBuff("JaxCounterStrike", true) && !SkillE.InRange(minionObj.Position)) || (!LXOrbwalker.InAutoAttackRange(minionObj) && Player.Distance(minionObj) > 450)) SkillQ.CastOnUnit(minionObj, PacketCast);
+                if ((Config.Item(Name + "useClearE").GetValue<bool>() && SkillE.IsReady() && Player.HasBuff("JaxCounterStrike", true) && !SkillE.InRange(minionObj.Position)) || (!LXOrbwalker.InAutoAttackRange(minionObj) && Player.Distance(minionObj) > 425)) SkillQ.CastOnUnit(minionObj, PacketCast);
             }
         }
 
@@ -256,7 +238,7 @@ namespace Master
             if (minionObj != null && (SkillW.IsReady() || Player.HasBuff("JaxEmpowerTwo", true)))
             {
                 if (!Player.HasBuff("JaxEmpowerTwo", true)) SkillW.Cast();
-                Player.IssueOrder(GameObjectOrder.AttackUnit, minionObj);
+                if (Player.HasBuff("JaxEmpowerTwo", true)) Player.IssueOrder(GameObjectOrder.AttackUnit, minionObj);
             }
         }
 
@@ -265,33 +247,28 @@ namespace Master
             if (!SkillQ.IsReady()) return;
             bool Jumped = false;
             if (Player.Distance(Pos) > SkillQ.Range) Pos = Player.Position + Vector3.Normalize(Pos - Player.Position) * 600;
-            foreach (var jumpObj in ObjectManager.Get<Obj_AI_Base>().Where(i => !i.IsMe && !(i is Obj_AI_Turret) && i.ServerPosition.Distance(Pos) <= 200))
+            foreach (var jumpObj in ObjectManager.Get<Obj_AI_Base>().Where(i => !i.IsMe && !(i is Obj_AI_Turret) && i.ServerPosition.Distance(Pos) <= 230))
             {
                 Jumped = true;
-                if (jumpObj.ServerPosition.Distance(Player.ServerPosition) <= SkillQ.Range + jumpObj.BoundingRadius)
+                if (jumpObj.ServerPosition.Distance(Player.ServerPosition) <= SkillQ.Range + jumpObj.BoundingRadius && !JumpCasted)
                 {
-                    if (TimeTick.ElapsedMilliseconds - lastTimeJump > 2000)
-                    {
-                        SkillQ.CastOnUnit(jumpObj, PacketCast);
-                        lastTimeJump = TimeTick.ElapsedMilliseconds;
-                    }
-                    else return;
+                    SkillQ.CastOnUnit(jumpObj, PacketCast);
+                    JumpCasted = true;
+                    Utility.DelayAction.Add(1000, () => JumpCasted = false);
                 }
                 return;
             }
-            if (!Jumped && Ward != null)
+            if (!Jumped && Ward != null && !WardCasted)
             {
-                if (TimeTick.ElapsedMilliseconds - lastTimeWard > 2000)
-                {
-                    Ward.UseItem(Pos);
-                    lastTimeWard = TimeTick.ElapsedMilliseconds;
-                }
+                Ward.UseItem(Pos);
+                WardCasted = true;
+                Utility.DelayAction.Add(1000, () => WardCasted = false);
             }
         }
 
         private void KillSteal()
         {
-            var target = ObjectManager.Get<Obj_AI_Hero>().FirstOrDefault(i => i.IsValidTarget(SkillQ.Range) && i.Health <= SkillQ.GetDamage(i) + GetBonusDmg(i));
+            var target = ObjectManager.Get<Obj_AI_Hero>().FirstOrDefault(i => i.IsValidTarget(SkillQ.Range) && i.Health <= SkillQ.GetDamage(i) + GetBonusDmg(i) && i != targetObj);
             if (target != null && Player.Mana >= SkillQ.Instance.ManaCost)
             {
                 if (SkillW.IsReady()) SkillW.Cast();

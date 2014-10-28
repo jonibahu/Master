@@ -19,7 +19,7 @@ namespace Master
             SkillW = new Spell(SpellSlot.W, 325);
             SkillE = new Spell(SpellSlot.E, 300);
             SkillR = new Spell(SpellSlot.R, 20);
-            SkillQ.SetSkillshot(SkillQ.Instance.SData.SpellCastTime, SkillQ.Instance.SData.LineWidth, SkillQ.Instance.SData.MissileSpeed, true, SkillshotType.SkillshotLine);
+            SkillQ.SetSkillshot(SkillQ.Instance.SData.SpellCastTime, SkillQ.Instance.SData.LineWidth - 20, SkillQ.Instance.SData.MissileSpeed, true, SkillshotType.SkillshotLine);
 
             Config.AddSubMenu(new Menu("Combo/Harass", "csettings"));
             Config.SubMenu("csettings").AddItem(new MenuItem(Name + "qusage", "Use Q").SetValue(true));
@@ -109,14 +109,21 @@ namespace Master
             if (targetObj == null) return;
             if (Config.Item(Name + "qusage").GetValue<bool>() && SkillQ.IsReady())
             {
-                if (Config.Item(Name + "smite").GetValue<bool>() && SkillQ.GetPrediction(targetObj).Hitchance == HitChance.Collision) CheckingCollision(targetObj, SkillQ);
-                SkillQ.CastIfHitchanceEquals(targetObj, HitChance.VeryHigh, PacketCast);
+                if (Config.Item(Name + "smite").GetValue<bool>() && SkillQ.GetPrediction(targetObj).Hitchance == HitChance.Collision)
+                {
+                    if (CheckingCollision(targetObj, SkillQ))
+                    {
+                        SkillQ.Cast(SkillQ.GetPrediction(targetObj).CastPosition, PacketCast);
+                    }
+                    else SkillQ.CastIfHitchanceEquals(targetObj, HitChance.VeryHigh, PacketCast);
+                }
+                else SkillQ.CastIfHitchanceEquals(targetObj, HitChance.VeryHigh, PacketCast);
             }
             if (Config.Item(Name + "wusage").GetValue<bool>() && SkillW.IsReady())
             {
                 if (Player.Health * 100 / Player.MaxHealth >= Config.Item(Name + "autowusage").GetValue<Slider>().Value)
                 {
-                    if (targetObj.IsValidTarget(SkillW.Range))
+                    if (SkillW.InRange(targetObj.Position))
                     {
                         if (!Player.HasBuff("BurningAgony")) SkillW.Cast();
                     }
@@ -173,11 +180,18 @@ namespace Master
 
         private void KillSteal()
         {
-            var target = ObjectManager.Get<Obj_AI_Hero>().FirstOrDefault(i => i.IsValidTarget(SkillQ.Range) && SkillQ.IsKillable(i));
+            var target = ObjectManager.Get<Obj_AI_Hero>().FirstOrDefault(i => i.IsValidTarget(SkillQ.Range) && SkillQ.IsKillable(i) && i != targetObj);
             if (target != null && SkillQ.IsReady())
             {
-                if (Config.Item(Name + "smite").GetValue<bool>() && SkillQ.GetPrediction(target).Hitchance == HitChance.Collision) CheckingCollision(target, SkillQ);
-                SkillQ.CastIfHitchanceEquals(target, HitChance.VeryHigh, PacketCast);
+                if (Config.Item(Name + "smite").GetValue<bool>() && SkillQ.GetPrediction(target).Hitchance == HitChance.Collision)
+                {
+                    if (CheckingCollision(target, SkillQ))
+                    {
+                        SkillQ.Cast(SkillQ.GetPrediction(target).CastPosition, PacketCast);
+                    }
+                    else SkillQ.CastIfHitchanceEquals(target, HitChance.VeryHigh, PacketCast);
+                }
+                else SkillQ.CastIfHitchanceEquals(target, HitChance.VeryHigh, PacketCast);
             }
         }
     }
