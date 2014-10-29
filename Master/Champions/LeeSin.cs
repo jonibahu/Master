@@ -74,6 +74,9 @@ namespace Master
             Config.SubMenu("DrawSettings").AddItem(new MenuItem(Name + "DrawE", "E Range").SetValue(false));
             Config.SubMenu("DrawSettings").AddItem(new MenuItem(Name + "DrawR", "R Range").SetValue(false));
 
+            Config.AddSubMenu(new Menu("Wardjump", "Wardjump"));
+            Config.SubMenu("Wardjump").AddItem(new MenuItem(Name + "Wardjump", "Wardjump").SetValue(new KeyBind("Y".ToCharArray()[0], KeyBindType.Press)));
+
             Game.OnGameUpdate += OnGameUpdate;
             Drawing.OnDraw += OnDraw;
             Obj_AI_Base.OnProcessSpellCast += OnProcessSpellCast;
