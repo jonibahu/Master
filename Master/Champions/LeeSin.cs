@@ -367,6 +367,26 @@ namespace Master
             }
         }
 
+        private void Wardjump()
+        {
+         if (Config.Item(Name + "Wardjump").GetValue<bool>()) WardJump(Game.CursorPos);
+            if ((SkillW.IsReady() && SkillW.Instance.Name != "BlindMonkWOne") || !SkillW.IsReady()) return;
+            bool Jumped = false;
+            if (Player.Distance(Pos) > SkillW.Range) Pos = Player.Position + Vector3.Normalize(Pos - Player.Position) * 600;
+            foreach (var jumpObj in ObjectManager.Get<Obj_AI_Base>().Where(i => !i.IsMe && i.IsAlly && !(i is Obj_AI_Turret) && i.ServerPosition.Distance(Pos) <= (Config.Item(Name + "insecMake").GetValue<KeyBind>().Active ? 130 : 230)))
+            {
+                Jumped = true;
+                if (jumpObj.ServerPosition.Distance(Player.ServerPosition) <= SkillW.Range + jumpObj.BoundingRadius && !WCasted) SkillW.CastOnUnit(jumpObj, PacketCast);
+                return;
+            }
+            if (!Jumped && Ward != null && !WardCasted)
+            {
+                Ward.UseItem(Pos);
+                WardCasted = true;
+                Utility.DelayAction.Add(1000, () => WardCasted = false);
+            }
+        }
+
         private void StarCombo()
         {
             LXOrbwalker.Orbwalk(Game.CursorPos, targetObj);
