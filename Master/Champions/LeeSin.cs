@@ -369,7 +369,7 @@ namespace Master
 
         private void Wardjump(Vector3 Pos)
         {
-         if (Config.Item(Name + "Wardjump").GetValue<bool>())
+            if (Config.Item(Name + "Wardjump").GetValue<bool>()) WardJump(Game.CursorPos);
             if ((SkillW.IsReady() && SkillW.Instance.Name != "BlindMonkWOne") || !SkillW.IsReady()) return;
             bool Jumped = false;
             if (Player.Distance(Pos) > SkillW.Range) Pos = Player.Position + Vector3.Normalize(Pos - Player.Position) * 600;
