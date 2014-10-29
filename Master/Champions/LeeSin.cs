@@ -367,7 +367,7 @@ namespace Master
             }
         }
 
-        private void Wardjump()
+        private void Wardjump(Vector3 Pos)
         {
          if (Config.Item(Name + "Wardjump").GetValue<bool>())
             if ((SkillW.IsReady() && SkillW.Instance.Name != "BlindMonkWOne") || !SkillW.IsReady()) return;
